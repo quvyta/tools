@@ -1,0 +1,127 @@
+# Spanish: checked against en.toml, the fallback.
+
+[meta]
+name = "Español"
+code = "es"
+
+[group]
+packages = "Paquetes"
+security = "Seguridad"
+hardware = "Hardware"
+appearance = "Apariencia"
+maintenance = "Mantenimiento"
+
+[tweak.mirrors]
+title = "Lista de espejos"
+summary = "Elige los espejos más rápidos de tu país y los actualiza cada semana."
+
+[tweak.pacman-options]
+title = "Opciones de pacman"
+summary = "Descarga paquetes en paralelo y muestra colores y listas de versiones completas."
+
+[tweak.multilib]
+title = "Repositorio multilib"
+summary = "Añade el repositorio de 32 bits que necesitan Steam y algunos controladores. Se puede usar tras la próxima actualización completa (`pacman -Syu`)."
+
+[tweak.aur-helper]
+title = "Asistente de AUR"
+summary = "Compila un asistente de AUR desde el código fuente, para instalar con un solo comando paquetes de fuera de los repositorios oficiales."
+
+[tweak.cache-cleanup]
+title = "Limpieza de caché"
+summary = "Conserva solo las últimas versiones de cada paquete descargado, con un temporizador semanal."
+
+[tweak.ssd-trim]
+title = "TRIM del SSD"
+summary = "Indica a tu SSD una vez por semana qué bloques están libres, para que siga rápido y dure más."
+
+[tweak.journal-limit]
+title = "Límite del registro"
+summary = "Limita cuánto disco puede ocupar el registro del sistema, mediante un archivo drop-in propio. Se aplica en el próximo arranque o al reiniciar journald."
+
+[tweak.time-sync]
+title = "Sincronización horaria"
+summary = "Mantiene el reloj en hora con el servicio de tiempo que trae systemd."
+
+[tweak.firewall]
+title = "Cortafuegos"
+summary = "Instala ufw y lo activa: las conexiones entrantes se bloquean y las salientes se permiten. qtools no abre nada, así que SSH y cualquier otro servicio que deba seguir accesible necesita su propia regla ufw allow."
+
+[tweak.ssh-hardening]
+title = "Endurecer SSH"
+summary = "Desactiva el inicio de sesión por SSH con contraseña y como root, en un archivo drop-in propio. Se aplica en el próximo reinicio de sshd; desde entonces solo se entra con clave, así que en una máquina a la que accedes en remoto asegúrate de que tu clave ya esté instalada."
+
+[option]
+"mirrors.country" = "País"
+"mirrors.count" = "Espejos"
+"pacman.parallel" = "Descargas en paralelo"
+"aur.helper" = "Asistente"
+"aur.paru" = "paru"
+"aur.yay" = "yay"
+"journal.max-use" = "Límite del registro (MB)"
+
+[unavailable]
+"no-ssd" = "Esta máquina no tiene SSD"
+"other-time-service" = "Otro servicio de tiempo gestiona el reloj"
+
+"no-openssh" = "openssh no está instalado"
+
+[header]
+tagline = "Ajustes recomendados para Arch Linux"
+
+[state]
+applied = "Activo"
+off = "Apagado"
+half = "Parcial"
+changed = "Cambiado"
+
+[detail]
+touches = "Afecta a"
+
+[touch]
+package = "paquete"
+service = "servicio"
+command = "comando"
+
+[hints]
+move = "mover"
+toggle = "marcar"
+apply = "aplicar"
+
+[confirm]
+"apply.title" = "¿Aplicar esto?"
+apply = "Aplicar"
+"revert.title" = "¿Deshacer esto?"
+revert = "Deshacer"
+cancel = "Cancelar"
+"password-steps" = { one = "{n} paso pedirá tu contraseña.", other = "{n} pasos pedirán tu contraseña." }
+
+[revert]
+button = "Deshacer"
+
+[run]
+applying = "Aplicando {tweak}"
+reverting = "Deshaciendo {tweak}"
+close = "Cerrar"
+done = "Hecho"
+failed = "Ha fallado"
+"failed-body" = "La salida explica el motivo. Lo que se hizo antes del fallo todavía se puede deshacer."
+
+[keys]
+revert = "deshacer"
+"close-run" = "cerrar"
+
+[cli]
+usage = "Uso: qtools, qtools --run <tweak>..., qtools --revert <tweak>..."
+"unknown-argument" = "Argumento desconocido: {argument}"
+"unknown-tweak" = "No hay ningún ajuste llamado {id}."
+applying = "Aplicando {tweak}"
+reverting = "Deshaciendo {tweak}"
+done = "hecho"
+failed = "falló: {reason}"
+"step-failed" = "el paso {step} falló: {reason}"
+stopped = "Los ajustes restantes no se ejecutaron."
+
+[unsupported]
+title = "Por ahora solo Arch Linux"
+message = "Por ahora qtools solo funciona en Arch Linux y en las distribuciones basadas en ella; el soporte para otras distribuciones llegará más adelante. No se ha cambiado nada."

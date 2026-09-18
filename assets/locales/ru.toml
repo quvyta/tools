@@ -1,0 +1,127 @@
+# Russian: checked against en.toml, with the four plural forms Russian needs.
+
+[meta]
+name = "Русский"
+code = "ru"
+
+[group]
+packages = "Пакеты"
+security = "Безопасность"
+hardware = "Оборудование"
+appearance = "Внешний вид"
+maintenance = "Обслуживание"
+
+[tweak.mirrors]
+title = "Список зеркал"
+summary = "Выбирает самые быстрые зеркала в вашей стране и обновляет их каждую неделю."
+
+[tweak.pacman-options]
+title = "Настройки pacman"
+summary = "Загружает пакеты параллельно, включает цветной вывод и полные списки версий."
+
+[tweak.multilib]
+title = "Репозиторий multilib"
+summary = "Подключает 32-битный репозиторий, который нужен Steam и некоторым драйверам. Он станет доступен после следующего полного обновления (`pacman -Syu`)."
+
+[tweak.aur-helper]
+title = "Помощник AUR"
+summary = "Собирает помощник AUR из исходников, чтобы пакеты вне официальных репозиториев ставились одной командой."
+
+[tweak.cache-cleanup]
+title = "Очистка кэша"
+summary = "По еженедельному таймеру оставляет только несколько последних версий каждого скачанного пакета."
+
+[tweak.ssd-trim]
+title = "TRIM для SSD"
+summary = "Раз в неделю сообщает SSD, какие блоки свободны, чтобы он оставался быстрым и служил дольше."
+
+[tweak.journal-limit]
+title = "Размер журнала"
+summary = "Ограничивает место на диске, которое может занять системный журнал, отдельным drop-in файлом. Вступает в силу при следующей загрузке или перезапуске journald."
+
+[tweak.time-sync]
+title = "Синхронизация времени"
+summary = "Поддерживает точное время с помощью службы времени из состава systemd."
+
+[tweak.firewall]
+title = "Брандмауэр"
+summary = "Устанавливает и включает ufw: входящие подключения блокируются, исходящие разрешены. qtools ничего не открывает, поэтому для SSH и любой другой службы, которая должна быть доступна извне, нужно своё правило ufw allow."
+
+[tweak.ssh-hardening]
+title = "Защита SSH"
+summary = "Отдельным drop-in файлом запрещает вход по SSH по паролю и под root. Вступает в силу при следующем перезапуске sshd; после этого войти можно только по ключу, поэтому на удалённой машине заранее убедитесь, что ваш ключ уже на месте."
+
+[option]
+"mirrors.country" = "Страна"
+"mirrors.count" = "Зеркал"
+"pacman.parallel" = "Параллельных загрузок"
+"aur.helper" = "Помощник"
+"aur.paru" = "paru"
+"aur.yay" = "yay"
+"journal.max-use" = "Предел журнала (МБ)"
+
+[unavailable]
+"no-ssd" = "На этой машине нет SSD"
+"other-time-service" = "Временем управляет другая служба"
+
+"no-openssh" = "openssh не установлен"
+
+[header]
+tagline = "Рекомендуемые настройки Arch Linux"
+
+[state]
+applied = "Применено"
+off = "Выключено"
+half = "Частично"
+changed = "Изменено"
+
+[detail]
+touches = "Затрагивает"
+
+[touch]
+package = "пакет"
+service = "служба"
+command = "команда"
+
+[hints]
+move = "выбор"
+toggle = "отметить"
+apply = "применить"
+
+[confirm]
+"apply.title" = "Применить?"
+apply = "Применить"
+"revert.title" = "Откатить?"
+revert = "Откатить"
+cancel = "Отмена"
+"password-steps" = { one = "{n} шаг запросит пароль.", few = "{n} шага запросят пароль.", many = "{n} шагов запросят пароль.", other = "{n} шага запросят пароль." }
+
+[revert]
+button = "Откатить"
+
+[run]
+applying = "Применяется: {tweak}"
+reverting = "Откатывается: {tweak}"
+close = "Закрыть"
+done = "Готово"
+failed = "Не удалось"
+"failed-body" = "Причина видна в выводе. То, что успело выполниться до ошибки, всё равно можно откатить."
+
+[keys]
+revert = "откатить"
+"close-run" = "закрыть"
+
+[cli]
+usage = "Использование: qtools, qtools --run <tweak>..., qtools --revert <tweak>..."
+"unknown-argument" = "Неизвестный аргумент: {argument}"
+"unknown-tweak" = "Настройки {id} нет."
+applying = "Применяется: {tweak}"
+reverting = "Откатывается: {tweak}"
+done = "готово"
+failed = "ошибка: {reason}"
+"step-failed" = "шаг {step} не выполнен: {reason}"
+stopped = "Остальные настройки не запускались."
+
+[unsupported]
+title = "Пока только Arch Linux"
+message = "Пока qtools работает только в Arch Linux и основанных на нём дистрибутивах; поддержка других появится позже. Ничего не изменено."

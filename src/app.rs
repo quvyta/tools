@@ -547,3 +547,9 @@ fn header<M: Clone + 'static>(ui: &mut View<'_, M>) {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod languages;
+
+#[cfg(test)]
+mod scenes;

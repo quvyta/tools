@@ -1,0 +1,127 @@
+# German: checked against en.toml, the fallback.
+
+[meta]
+name = "Deutsch"
+code = "de"
+
+[group]
+packages = "Pakete"
+security = "Sicherheit"
+hardware = "Hardware"
+appearance = "Darstellung"
+maintenance = "Wartung"
+
+[tweak.mirrors]
+title = "Spiegelliste"
+summary = "Wählt die schnellsten Spiegelserver in deinem Land und aktualisiert sie jede Woche."
+
+[tweak.pacman-options]
+title = "Pacman-Optionen"
+summary = "Lädt Pakete parallel herunter und zeigt Farben und vollständige Versionslisten."
+
+[tweak.multilib]
+title = "Multilib-Repository"
+summary = "Fügt das 32-Bit-Repository hinzu, das Steam und einige Treiber brauchen. Nutzbar wird es nach dem nächsten vollständigen Upgrade (`pacman -Syu`)."
+
+[tweak.aur-helper]
+title = "AUR-Helfer"
+summary = "Baut einen AUR-Helfer aus den Quellen, damit sich Pakete außerhalb der offiziellen Repositorys mit einem Befehl installieren lassen."
+
+[tweak.cache-cleanup]
+title = "Paketcache aufräumen"
+summary = "Behält von jedem heruntergeladenen Paket nur die letzten paar Versionen, per wöchentlichem Timer."
+
+[tweak.ssd-trim]
+title = "SSD-Trim"
+summary = "Teilt deiner SSD einmal pro Woche mit, welche Blöcke frei sind, damit sie schnell bleibt und länger hält."
+
+[tweak.journal-limit]
+title = "Journal-Größenlimit"
+summary = "Begrenzt über eine eigene Drop-in-Datei, wie viel Platz das Systemprotokoll belegen darf. Wirksam ab dem nächsten Systemstart oder dem nächsten Neustart von journald."
+
+[tweak.time-sync]
+title = "Zeitsynchronisation"
+summary = "Hält die Uhr mit dem Zeitdienst von systemd genau."
+
+[tweak.firewall]
+title = "Firewall"
+summary = "Installiert ufw und schaltet sie ein: Eingehende Verbindungen werden blockiert, ausgehende erlaubt. qtools öffnet nichts, daher braucht SSH und jeder andere Dienst, der erreichbar bleiben muss, eine eigene ufw-allow-Regel."
+
+[tweak.ssh-hardening]
+title = "SSH-Härtung"
+summary = "Schaltet Passwort- und Root-Anmeldungen über SSH in einer eigenen Drop-in-Datei ab. Wirksam ab dem nächsten Neustart von sshd; danach kommen nur noch Schlüssel hinein. Auf einem Rechner, den du aus der Ferne erreichst, sollte dein Schlüssel also schon hinterlegt sein."
+
+[option]
+"mirrors.country" = "Land"
+"mirrors.count" = "Spiegelserver"
+"pacman.parallel" = "Parallele Downloads"
+"aur.helper" = "Helfer"
+"aur.paru" = "paru"
+"aur.yay" = "yay"
+"journal.max-use" = "Journal-Größenlimit (MB)"
+
+[unavailable]
+"no-ssd" = "Keine SSD in diesem Rechner"
+"other-time-service" = "Ein anderer Zeitdienst stellt die Uhr"
+
+"no-openssh" = "openssh ist nicht installiert"
+
+[header]
+tagline = "Empfohlene Einstellungen für Arch"
+
+[state]
+applied = "Aktiv"
+off = "Aus"
+half = "Teilweise"
+changed = "Geändert"
+
+[detail]
+touches = "Betrifft"
+
+[touch]
+package = "Paket"
+service = "Dienst"
+command = "Befehl"
+
+[hints]
+move = "bewegen"
+toggle = "wählen"
+apply = "anwenden"
+
+[confirm]
+"apply.title" = "Anwenden?"
+apply = "Anwenden"
+"revert.title" = "Rückgängig machen?"
+revert = "Rückgängig"
+cancel = "Abbrechen"
+"password-steps" = { one = "{n} Schritt fragt nach deinem Passwort.", other = "{n} Schritte fragen nach deinem Passwort." }
+
+[revert]
+button = "Rückgängig"
+
+[run]
+applying = "{tweak} wird angewendet"
+reverting = "{tweak} wird rückgängig gemacht"
+close = "Schließen"
+done = "Fertig"
+failed = "Fehlgeschlagen"
+"failed-body" = "Die Ausgabe nennt den Grund. Was vor dem Fehler erledigt wurde, lässt sich weiterhin rückgängig machen."
+
+[keys]
+revert = "rückgängig"
+"close-run" = "schließen"
+
+[cli]
+usage = "Aufruf: qtools, qtools --run <tweak>..., qtools --revert <tweak>..."
+"unknown-argument" = "Unbekanntes Argument: {argument}"
+"unknown-tweak" = "Es gibt keine Einstellung namens {id}."
+applying = "{tweak} wird angewendet"
+reverting = "{tweak} wird rückgängig gemacht"
+done = "fertig"
+failed = "fehlgeschlagen: {reason}"
+"step-failed" = "Schritt {step} fehlgeschlagen: {reason}"
+stopped = "Die übrigen Einstellungen wurden nicht ausgeführt."
+
+[unsupported]
+title = "Vorerst nur Arch Linux"
+message = "qtools läuft vorerst nur unter Arch Linux und darauf aufbauenden Distributionen; Unterstützung für andere Distributionen folgt später. Es wurde nichts verändert."

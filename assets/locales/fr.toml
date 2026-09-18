@@ -1,0 +1,127 @@
+# French: checked against en.toml, the fallback.
+
+[meta]
+name = "Français"
+code = "fr"
+
+[group]
+packages = "Paquets"
+security = "Sécurité"
+hardware = "Matériel"
+appearance = "Apparence"
+maintenance = "Entretien"
+
+[tweak.mirrors]
+title = "Liste de miroirs"
+summary = "Choisit les miroirs les plus rapides de votre pays et les actualise chaque semaine."
+
+[tweak.pacman-options]
+title = "Options de pacman"
+summary = "Télécharge les paquets en parallèle et affiche les couleurs et les listes de versions complètes."
+
+[tweak.multilib]
+title = "Dépôt multilib"
+summary = "Ajoute le dépôt 32 bits dont Steam et certains pilotes ont besoin. Il devient utilisable après la prochaine mise à jour complète (`pacman -Syu`)."
+
+[tweak.aur-helper]
+title = "Assistant AUR"
+summary = "Compile un assistant AUR depuis les sources, pour installer d’une seule commande les paquets hors des dépôts officiels."
+
+[tweak.cache-cleanup]
+title = "Nettoyage du cache"
+summary = "Ne garde que les dernières versions de chaque paquet téléchargé, grâce à un minuteur hebdomadaire."
+
+[tweak.ssd-trim]
+title = "TRIM du SSD"
+summary = "Indique une fois par semaine à votre SSD quels blocs sont libres, pour qu’il reste rapide et dure plus longtemps."
+
+[tweak.journal-limit]
+title = "Taille du journal"
+summary = "Limite la place que le journal système peut occuper sur le disque, via un fichier drop-in dédié. Prend effet au prochain démarrage ou au prochain redémarrage de journald."
+
+[tweak.time-sync]
+title = "Synchro de l’heure"
+summary = "Garde l’horloge à l’heure grâce au service de temps fourni avec systemd."
+
+[tweak.firewall]
+title = "Pare-feu"
+summary = "Installe ufw et l’active : les connexions entrantes sont bloquées, les sortantes autorisées. qtools n’ouvre rien ; SSH et tout autre service qui doit rester joignable a donc besoin de sa propre règle ufw allow."
+
+[tweak.ssh-hardening]
+title = "Durcissement SSH"
+summary = "Désactive les connexions SSH par mot de passe et en root, dans un fichier drop-in dédié. Prend effet au prochain redémarrage de sshd ; ensuite, seules les clés permettent d’entrer. Sur une machine à laquelle vous accédez à distance, vérifiez que votre clé est déjà en place."
+
+[option]
+"mirrors.country" = "Pays"
+"mirrors.count" = "Miroirs"
+"pacman.parallel" = "Téléchargements parallèles"
+"aur.helper" = "Assistant"
+"aur.paru" = "paru"
+"aur.yay" = "yay"
+"journal.max-use" = "Taille maximale du journal (Mo)"
+
+[unavailable]
+"no-ssd" = "Aucun SSD sur cette machine"
+"other-time-service" = "Un autre service de temps gère l’horloge"
+
+"no-openssh" = "openssh n’est pas installé"
+
+[header]
+tagline = "Réglages recommandés pour Arch Linux"
+
+[state]
+applied = "Activé"
+off = "Inactif"
+half = "Partiel"
+changed = "Modifié"
+
+[detail]
+touches = "Concerne"
+
+[touch]
+package = "paquet"
+service = "service"
+command = "commande"
+
+[hints]
+move = "défiler"
+toggle = "cocher"
+apply = "appliquer"
+
+[confirm]
+"apply.title" = "Appliquer ?"
+apply = "Appliquer"
+"revert.title" = "Annuler ?"
+revert = "Annuler"
+cancel = "Retour"
+"password-steps" = { one = "{n} étape demandera votre mot de passe.", other = "{n} étapes demanderont votre mot de passe." }
+
+[revert]
+button = "Annuler"
+
+[run]
+applying = "Application de {tweak}"
+reverting = "Annulation de {tweak}"
+close = "Fermer"
+done = "Terminé"
+failed = "Échec"
+"failed-body" = "La sortie en indique la raison. Ce qui a été fait avant l’échec peut toujours être annulé."
+
+[keys]
+revert = "annuler"
+"close-run" = "fermer"
+
+[cli]
+usage = "Utilisation : qtools, qtools --run <tweak>..., qtools --revert <tweak>..."
+"unknown-argument" = "Argument inconnu : {argument}"
+"unknown-tweak" = "Aucun réglage ne s’appelle {id}."
+applying = "Application de {tweak}"
+reverting = "Annulation de {tweak}"
+done = "terminé"
+failed = "échec : {reason}"
+"step-failed" = "échec de l’étape {step} : {reason}"
+stopped = "Les réglages restants n’ont pas été exécutés."
+
+[unsupported]
+title = "Arch Linux uniquement, pour l’instant"
+message = "Pour l’instant, qtools ne fonctionne que sous Arch Linux et les distributions qui en dérivent ; la prise en charge d’autres distributions viendra plus tard. Rien n’a été modifié."

@@ -1,5 +1,7 @@
 # qtools
 
+![qtools: the Packages group with a half-applied item selected and its detail beside the list](https://raw.githubusercontent.com/quvyta/tools/main/docs/screenshots/list.png)
+
 **quvyta-tools** applies the settings Arch Linux users usually set up by hand, from one list: a
 fast mirror list, parallel downloads in pacman, the multilib repository, an AUR helper, a package
 cache that cleans itself, a firewall, SSH hardening, SSD trim, a journal size limit and time sync.
@@ -14,6 +16,14 @@ nothing; it says it is already applied. qtools is not a package manager and neve
 > `/etc` and enables services. Read the confirmation before you accept it, and try it first on a
 > machine you can afford to repair. The interface and the command line may still change between
 > releases. Please report anything that looks wrong at <https://github.com/quvyta/tools/issues>.
+
+<p>
+  <img src="https://raw.githubusercontent.com/quvyta/tools/main/docs/screenshots/security.png" alt="The Security group: a firewall someone turned off since it was applied, and what it touches" width="49%">
+  <img src="https://raw.githubusercontent.com/quvyta/tools/main/docs/screenshots/confirm.png" alt="The confirmation before two items run: packages, commands, services and how many steps ask for a password" width="49%">
+</p>
+<p>
+  <img src="https://raw.githubusercontent.com/quvyta/tools/main/docs/screenshots/narrow.png" alt="A narrow terminal: the groups become tabs above the list and the detail opens below it" width="49%">
+</p>
 
 ## Requirements
 
@@ -86,7 +96,9 @@ shown faint, with the reason, and cannot be applied.
 Before anything runs, one confirmation lists the commands, the files, where the backup goes and
 how many steps will ask for your password.
 
-The interface comes in English and Turkish.
+## Languages
+
+The interface comes in English, Turkish, German, Spanish, French, Brazilian Portuguese and Russian. qtools follows your system language (`LC_ALL`, `LC_MESSAGES` or `LANG`) and falls back to English. In this release Brazilian Portuguese is not yet picked up from a regional setting such as `pt_BR.UTF-8`; qtools shows English for it until a later release. In the five newer languages a few key names in the bar at the bottom of the screen (such as `quit`) are still in English.
 
 ## The Packages group
 

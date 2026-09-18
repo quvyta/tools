@@ -2,9 +2,17 @@
 
 use qframe::env::{AssetDirs, Env};
 
-/// The compiled-in language files.
-pub const LOCALES: [(&str, &str); 2] =
-    [("en.toml", include_str!("../assets/locales/en.toml")), ("tr.toml", include_str!("../assets/locales/tr.toml"))];
+/// The compiled-in language files. English comes first: it is the fallback, and every other file
+/// is held to its keys.
+pub const LOCALES: &[(&str, &str)] = &[
+    ("en.toml", include_str!("../assets/locales/en.toml")),
+    ("tr.toml", include_str!("../assets/locales/tr.toml")),
+    ("de.toml", include_str!("../assets/locales/de.toml")),
+    ("es.toml", include_str!("../assets/locales/es.toml")),
+    ("fr.toml", include_str!("../assets/locales/fr.toml")),
+    ("pt-BR.toml", include_str!("../assets/locales/pt-BR.toml")),
+    ("ru.toml", include_str!("../assets/locales/ru.toml")),
+];
 
 /// The compiled-in keymap: the application's own keys.
 pub const KEYMAP: (&str, &str) = ("keymap.toml", include_str!("../assets/keymap.toml"));
@@ -18,3 +26,6 @@ pub fn env() -> Env {
     };
     Env::load(&dirs).expect("the compiled-in locales are readable")
 }
+
+#[cfg(test)]
+mod tests;

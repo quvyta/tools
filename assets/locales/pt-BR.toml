@@ -1,0 +1,127 @@
+# Brazilian Portuguese: checked against en.toml, the fallback.
+
+[meta]
+name = "Português (Brasil)"
+code = "pt-BR"
+
+[group]
+packages = "Pacotes"
+security = "Segurança"
+hardware = "Hardware"
+appearance = "Aparência"
+maintenance = "Manutenção"
+
+[tweak.mirrors]
+title = "Espelhos"
+summary = "Escolhe os espelhos mais rápidos do seu país e os atualiza toda semana."
+
+[tweak.pacman-options]
+title = "Opções do pacman"
+summary = "Baixa pacotes em paralelo e mostra cores e listas completas de versões."
+
+[tweak.multilib]
+title = "Repositório multilib"
+summary = "Adiciona o repositório de 32 bits, necessário para o Steam e alguns drivers. Ele passa a funcionar depois da próxima atualização completa (`pacman -Syu`)."
+
+[tweak.aur-helper]
+title = "Auxiliar do AUR"
+summary = "Compila um auxiliar do AUR a partir do código-fonte, para instalar com um só comando pacotes de fora dos repositórios oficiais."
+
+[tweak.cache-cleanup]
+title = "Limpeza do cache"
+summary = "Mantém só as últimas versões de cada pacote baixado, com um timer semanal."
+
+[tweak.ssd-trim]
+title = "TRIM do SSD"
+summary = "Informa ao seu SSD uma vez por semana quais blocos estão livres, para que ele continue rápido e dure mais."
+
+[tweak.journal-limit]
+title = "Limite do journal"
+summary = "Limita quanto espaço em disco o log do sistema pode ocupar, com um arquivo drop-in próprio. Vale a partir da próxima inicialização ou do próximo reinício do journald."
+
+[tweak.time-sync]
+title = "Sincronia do relógio"
+summary = "Mantém o relógio certo com o serviço de horário que vem com o systemd."
+
+[tweak.firewall]
+title = "Firewall"
+summary = "Instala o ufw e o ativa: conexões de entrada são bloqueadas, as de saída são permitidas. O qtools não abre nada, então o SSH e qualquer outro serviço que precise continuar acessível precisam de uma regra ufw allow própria."
+
+[tweak.ssh-hardening]
+title = "Proteção do SSH"
+summary = "Desativa o login por senha e o login como root via SSH, em um arquivo drop-in próprio. Vale a partir do próximo reinício do sshd; daí em diante só se entra com chave, então, numa máquina que você acessa remotamente, confira se a sua chave já está instalada."
+
+[option]
+"mirrors.country" = "País"
+"mirrors.count" = "Espelhos"
+"pacman.parallel" = "Downloads em paralelo"
+"aur.helper" = "Auxiliar"
+"aur.paru" = "paru"
+"aur.yay" = "yay"
+"journal.max-use" = "Limite do journal (MB)"
+
+[unavailable]
+"no-ssd" = "Esta máquina não tem SSD"
+"other-time-service" = "Outro serviço de horário cuida do relógio"
+
+"no-openssh" = "O openssh não está instalado"
+
+[header]
+tagline = "Ajustes recomendados para Arch Linux"
+
+[state]
+applied = "Ativo"
+off = "Inativo"
+half = "Parcial"
+changed = "Alterado"
+
+[detail]
+touches = "Afeta"
+
+[touch]
+package = "pacote"
+service = "serviço"
+command = "comando"
+
+[hints]
+move = "mover"
+toggle = "marcar"
+apply = "aplicar"
+
+[confirm]
+"apply.title" = "Aplicar isto?"
+apply = "Aplicar"
+"revert.title" = "Desfazer isto?"
+revert = "Desfazer"
+cancel = "Cancelar"
+"password-steps" = { one = "{n} etapa vai pedir sua senha.", other = "{n} etapas vão pedir sua senha." }
+
+[revert]
+button = "Desfazer"
+
+[run]
+applying = "Aplicando {tweak}"
+reverting = "Desfazendo {tweak}"
+close = "Fechar"
+done = "Pronto"
+failed = "Falhou"
+"failed-body" = "A saída mostra o motivo. O que foi feito antes da falha ainda pode ser desfeito."
+
+[keys]
+revert = "desfazer"
+"close-run" = "fechar"
+
+[cli]
+usage = "Uso: qtools, qtools --run <tweak>..., qtools --revert <tweak>..."
+"unknown-argument" = "Argumento desconhecido: {argument}"
+"unknown-tweak" = "Não existe nenhum ajuste chamado {id}."
+applying = "Aplicando {tweak}"
+reverting = "Desfazendo {tweak}"
+done = "pronto"
+failed = "falhou: {reason}"
+"step-failed" = "a etapa {step} falhou: {reason}"
+stopped = "Os ajustes restantes não foram executados."
+
+[unsupported]
+title = "Por enquanto, só Arch Linux"
+message = "Por enquanto, o qtools só funciona no Arch Linux e em distribuições baseadas nele; o suporte a outras distribuições virá depois. Nada foi alterado."
