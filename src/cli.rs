@@ -44,7 +44,8 @@ pub fn parse(args: impl IntoIterator<Item = String>) -> Invocation {
 /// asks for, and says what happened line by line on standard output.
 ///
 /// The exit code is 0 when every tweak went through, 1 when one failed (the rest are not run)
-/// and 2 when the arguments made no sense.
+/// and 2 when the arguments made no sense. The distribution is checked before this is called;
+/// see [`unsupported`] for the code it gives.
 ///
 /// # Errors
 ///
@@ -60,6 +61,14 @@ pub fn carry_out(invocation: &Invocation) -> io::Result<ExitCode> {
             Ok(ExitCode::from(2))
         }
     })
+}
+
+/// Says, in the language the environment asks for, that this distribution is not supported
+/// yet, and gives the exit code for it: 3, apart from the codes a run itself uses.
+pub fn unsupported() -> ExitCode {
+    let env = locales::env();
+    qframe::i18n::scope(Arc::new(env.i18n().clone()), || eprintln!("{}", t!("unsupported.message")));
+    ExitCode::from(3)
 }
 
 fn run(ids: &[String], revert: bool) -> io::Result<ExitCode> {

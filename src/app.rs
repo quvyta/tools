@@ -34,6 +34,8 @@ use crate::tweak::{Group, Tweak, TweakState};
 pub mod run;
 use run::Running;
 
+pub mod unsupported;
+
 /// Reads where every tweak stands, on this machine.
 fn read_states() -> Vec<TweakState> {
     let mut system = crate::system::RealSystem;
@@ -531,7 +533,7 @@ fn state_word(state: &TweakState) -> String {
     }
 }
 
-fn header(ui: &mut View<'_, Msg>) {
+fn header<M: Clone + 'static>(ui: &mut View<'_, M>) {
     ui.add(
         Text::rich([
             Span::new("qtools").color("accent").bold(),

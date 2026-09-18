@@ -121,3 +121,7 @@ done = "tamam"
 failed = "başarısız: {reason}"
 "step-failed" = "{step}. adım başarısız: {reason}"
 stopped = "Kalan maddeler çalıştırılmadı."
+
+[unsupported]
+title = "Şimdilik yalnızca Arch Linux"
+message = "qtools şimdilik yalnızca Arch Linux ve türevlerinde çalışır; diğer dağıtımların desteği sonra gelecek. Bu makinede hiçbir şey değiştirilmedi."

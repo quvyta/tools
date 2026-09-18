@@ -121,3 +121,7 @@ done = "done"
 failed = "failed: {reason}"
 "step-failed" = "step {step} failed: {reason}"
 stopped = "The remaining tweaks were not run."
+
+[unsupported]
+title = "Only Arch Linux for now"
+message = "qtools works only on Arch Linux and distributions built on it for now; support for other distributions will come later. Nothing was changed."

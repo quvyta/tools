@@ -24,21 +24,50 @@ pub mod locales;
 /// The `--run` and `--revert` command lines, which the embedded terminal runs.
 pub mod cli;
 
+/// Whether this machine runs Arch Linux or a distribution built on it.
+pub mod distro;
+
 use std::io;
 use std::process::ExitCode;
 
 use qframe::runtime::Runtime;
 
-/// Runs one `qtools` invocation: a `--run` or `--revert` line carries out its tweaks and exits,
-/// anything else opens the screen. Both commands, `qtools` and `quvyta-tools`, start here.
+/// Runs one `qtools` invocation on this machine: a `--run` or `--revert` line carries out its
+/// tweaks and exits, anything else opens the screen. Both commands, `qtools` and
+/// `quvyta-tools`, start here.
 ///
 /// # Errors
 ///
 /// Returns the terminal's error when the screen cannot be opened or drawn.
 pub fn run() -> io::Result<ExitCode> {
-    let invocation = cli::parse(std::env::args().skip(1));
+    let os_release = distro::os_release(&system::RealSystem);
+    run_on(std::env::args().skip(1), os_release.as_deref())
+}
+
+/// Runs one invocation on a machine that describes itself with `os_release` (the text of
+/// `/etc/os-release`, or `None` when it could not be read).
+///
+/// On a distribution qtools does not support nothing else is read or changed: the screen shows
+/// only a notice, and a command line says the same and exits with code 3.
+///
+/// # Errors
+///
+/// Returns the terminal's error when the screen cannot be opened or drawn.
+pub fn run_on(args: impl IntoIterator<Item = String>, os_release: Option<&str>) -> io::Result<ExitCode> {
+    let invocation = cli::parse(args);
+    let supported = distro::is_supported(os_release);
     if invocation != cli::Invocation::Screen {
-        return cli::carry_out(&invocation);
+        return if supported { cli::carry_out(&invocation) } else { Ok(cli::unsupported()) };
+    }
+    if !supported {
+        locales::LOCALES
+            .iter()
+            .fold(Runtime::new(app::unsupported::Unsupported), |runtime, (file, text)| {
+                runtime.locale_source(*file, *text)
+            })
+            .keymap_source(locales::KEYMAP.0, locales::KEYMAP.1)
+            .run()?;
+        return Ok(ExitCode::SUCCESS);
     }
 
     // The screen may not do I/O, so where every tweak stands is read once before it opens.
@@ -52,4 +81,34 @@ pub fn run() -> io::Result<ExitCode> {
         .keymap_source(locales::KEYMAP.0, locales::KEYMAP.1)
         .run()?;
     Ok(ExitCode::SUCCESS)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const UBUNTU: &str = "NAME=\"Ubuntu\"\nID=ubuntu\nID_LIKE=debian\n";
+
+    fn args(list: &[&str]) -> Vec<String> {
+        list.iter().map(|arg| (*arg).to_owned()).collect()
+    }
+
+    // Each line here stops before any reading or writing even when supported (no tweak, an
+    // unknown id, an unknown flag), so a broken check could never reach the machine; only the
+    // exit code tells the refusal apart.
+    #[test]
+    fn a_command_line_on_another_distribution_is_refused_with_code_3() {
+        for line in [&["--run"][..], &["--revert", "no-such-tweak"], &["--help"]] {
+            assert_eq!(run_on(args(line), Some(UBUNTU)).unwrap(), ExitCode::from(3), "{line:?}");
+            assert_eq!(run_on(args(line), None).unwrap(), ExitCode::from(3), "{line:?} with no os-release");
+        }
+    }
+
+    #[test]
+    fn a_command_line_on_arch_goes_through() {
+        for line in [&["--run"][..], &["--revert", "no-such-tweak"], &["--help"]] {
+            assert_eq!(run_on(args(line), Some("ID=arch\n")).unwrap(), ExitCode::from(2), "{line:?}");
+            assert_eq!(run_on(args(line), Some("ID=endeavouros\nID_LIKE=arch\n")).unwrap(), ExitCode::from(2));
+        }
+    }
 }

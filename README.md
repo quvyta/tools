@@ -17,7 +17,7 @@ nothing; it says it is already applied. qtools is not a package manager and neve
 
 ## Requirements
 
-- Arch Linux, or a distribution built on it that uses `pacman` and `systemd`.
+- Arch Linux, or a distribution built on it that uses `pacman` and `systemd`. On any other distribution qtools says it does not support it yet and exits without changing anything.
 - `sudo`, set up for your user: the steps that need privileges ask for your password through it.
 - Rust 1.95 or later to install it with cargo.
 
