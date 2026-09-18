@@ -24,9 +24,17 @@ nothing; it says it is already applied. qtools is not a package manager and neve
 ## Install
 
 ```sh
+curl -fsSL https://raw.githubusercontent.com/quvyta/quvyta/main/install.sh | sh -s -- tools
+```
+
+Or with cargo directly:
+
+```sh
 cargo install quvyta-tools
 qtools
 ```
+
+If the command is not found, add `~/.cargo/bin` to your PATH (fish: `fish_add_path ~/.cargo/bin`).
 
 The package installs two commands that do the same thing: `qtools` and `quvyta-tools`.
 
