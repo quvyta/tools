@@ -1,0 +1,123 @@
+# English: the final fallback language. Every other locale is checked against this file.
+
+[meta]
+name = "English"
+code = "en"
+
+[group]
+packages = "Packages"
+security = "Security"
+hardware = "Hardware"
+appearance = "Appearance"
+maintenance = "Maintenance"
+
+[tweak.mirrors]
+title = "Mirror list"
+summary = "Picks the fastest mirrors in your country and refreshes them every week."
+
+[tweak.pacman-options]
+title = "Pacman options"
+summary = "Downloads packages in parallel and shows colour and full version lists."
+
+[tweak.multilib]
+title = "Multilib repository"
+summary = "Adds the 32-bit repository, needed by Steam and by some drivers. It becomes usable after your next full upgrade (`pacman -Syu`)."
+
+[tweak.aur-helper]
+title = "AUR helper"
+summary = "Builds an AUR helper from source, so packages outside the official repositories install with one command."
+
+[tweak.cache-cleanup]
+title = "Cache cleanup"
+summary = "Keeps only the last few versions of each downloaded package, on a weekly timer."
+
+[tweak.ssd-trim]
+title = "SSD trim"
+summary = "Tells your SSD once a week which blocks are free, so it stays fast and lasts longer."
+
+[tweak.journal-limit]
+title = "Journal size limit"
+summary = "Caps how much disk the system log may use, through a drop-in of its own. It takes effect at the next boot or the next restart of journald."
+
+[tweak.time-sync]
+title = "Time sync"
+summary = "Keeps the clock right with the time service systemd ships."
+
+[tweak.firewall]
+title = "Firewall"
+summary = "Installs ufw and turns it on: incoming connections are blocked, outgoing ones are allowed. qtools opens nothing, so SSH and any other service that must stay reachable needs its own ufw allow rule."
+
+[tweak.ssh-hardening]
+title = "SSH hardening"
+summary = "Turns off password and root logins over SSH in a drop-in of its own. Takes effect at the next sshd restart; from then on only keys get in, so on a machine you reach remotely make sure your key is already in place."
+
+[option]
+"mirrors.country" = "Country"
+"mirrors.count" = "Mirrors"
+"pacman.parallel" = "Parallel downloads"
+"aur.helper" = "Helper"
+"aur.paru" = "paru"
+"aur.yay" = "yay"
+"journal.max-use" = "Journal size limit (MB)"
+
+[unavailable]
+"no-ssd" = "No SSD on this machine"
+"other-time-service" = "Another time service keeps the clock"
+
+"no-openssh" = "openssh is not installed"
+
+[header]
+tagline = "Recommended Arch Linux settings"
+
+[state]
+applied = "Applied"
+off = "Off"
+half = "Half"
+changed = "Changed"
+
+[detail]
+touches = "Touches"
+
+[touch]
+package = "package"
+service = "service"
+command = "command"
+
+[hints]
+move = "move"
+toggle = "check"
+apply = "apply"
+
+[confirm]
+"apply.title" = "Apply this?"
+apply = "Apply"
+"revert.title" = "Undo this?"
+revert = "Undo"
+cancel = "Cancel"
+"password-steps" = { one = "{n} step will ask for your password.", other = "{n} steps will ask for your password." }
+
+[revert]
+button = "Undo"
+
+[run]
+applying = "Applying {tweak}"
+reverting = "Undoing {tweak}"
+close = "Close"
+done = "Done"
+failed = "It failed"
+"failed-body" = "The output says why. What was done before the failure can still be undone."
+
+[keys]
+revert = "undo"
+"close-run" = "close"
+
+[cli]
+usage = "Usage: qtools, qtools --run <tweak>..., qtools --revert <tweak>..."
+"unknown-argument" = "Unknown argument: {argument}"
+"unknown-tweak" = "No tweak is called {id}."
+applying = "Applying {tweak}"
+reverting = "Undoing {tweak}"
+done = "done"
+failed = "failed: {reason}"
+"step-failed" = "step {step} failed: {reason}"
+stopped = "The remaining tweaks were not run."

@@ -1,0 +1,4 @@
+# The application's own keys. Global keys (quit, focus, the panel) come from the framework.
+[app]
+revert = "z"
+close-run = "esc"

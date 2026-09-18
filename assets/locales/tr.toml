@@ -1,0 +1,123 @@
+# Türkçe: qtools'un doğal dili.
+
+[meta]
+name = "Türkçe"
+code = "tr"
+
+[group]
+packages = "Paketler"
+security = "Güvenlik"
+hardware = "Donanım"
+appearance = "Görünüm"
+maintenance = "Bakım"
+
+[tweak.mirrors]
+title = "Yansı listesi"
+summary = "Ülkendeki en hızlı yansıları seçer ve her hafta yeniler."
+
+[tweak.pacman-options]
+title = "Pacman ayarları"
+summary = "Paketleri paralel indirir, çıktıyı renkli ve ayrıntılı gösterir."
+
+[tweak.multilib]
+title = "Multilib deposu"
+summary = "Steam ve bazı sürücülerin ihtiyaç duyduğu 32 bit depoyu ekler; bir sonraki `pacman -Syu` ile birlikte kullanılabilir hâle gelir."
+
+[tweak.aur-helper]
+title = "AUR yardımcısı"
+summary = "Resmi depoların dışındaki paketleri tek komutla kurabilmen için kaynağından bir AUR yardımcısı derler."
+
+[tweak.cache-cleanup]
+title = "Önbellek temizliği"
+summary = "İndirilen paketlerin yalnızca son birkaç sürümünü tutar, bunu haftalık bir zamanlayıcıyla yapar."
+
+[tweak.ssd-trim]
+title = "SSD trim"
+summary = "Haftada bir SSD'ye hangi blokların boş olduğunu söyler; disk hızlı kalır, ömrü uzar."
+
+[tweak.journal-limit]
+title = "Günlük boyutu sınırı"
+summary = "Sistem günlüğünün diskte kaplayabileceği alanı kendi ek dosyasıyla sınırlar. Bir sonraki açılışta ya da journald yeniden başlatılınca geçerli olur."
+
+[tweak.time-sync]
+title = "Zaman eşitleme"
+summary = "Saati systemd'nin kendi zaman servisiyle doğru tutar."
+
+[tweak.firewall]
+title = "Güvenlik duvarı"
+summary = "ufw'yi kurar ve açar: dışarıdan gelen bağlantılar engellenir, dışarıya gidenler serbesttir. qtools hiçbir kapı açmaz; SSH gibi dışarıdan erişilmesi gereken her servis için ayrıca bir ufw allow kuralı gerekir."
+
+[tweak.ssh-hardening]
+title = "SSH sıkılaştırma"
+summary = "SSH'de parolayla girişi ve root girişini kendi ek dosyasıyla kapatır. sshd bir sonraki yeniden başlatılışında geçerli olur; o andan sonra yalnızca anahtarla girilebilir, bu yüzden uzaktan bağlandığınız bir makinede anahtarınızın önceden yüklü olduğundan emin olun."
+
+[option]
+"mirrors.country" = "Ülke"
+"mirrors.count" = "Yansı sayısı"
+"pacman.parallel" = "Paralel indirme sayısı"
+"aur.helper" = "Yardımcı"
+"aur.paru" = "paru"
+"aur.yay" = "yay"
+"journal.max-use" = "Günlük boyutu sınırı (MB)"
+
+[unavailable]
+"no-ssd" = "Bu makinede SSD yok"
+"other-time-service" = "Saati başka bir zaman servisi tutuyor"
+
+"no-openssh" = "openssh kurulu değil"
+
+[header]
+tagline = "Arch için önerilen ayarlar"
+
+[state]
+applied = "Uygulandı"
+off = "Kapalı"
+half = "Yarım"
+changed = "Değişti"
+
+[detail]
+touches = "Dokunduğu yerler"
+
+[touch]
+package = "paket"
+service = "servis"
+command = "komut"
+
+[hints]
+move = "gez"
+toggle = "işaretle"
+apply = "uygula"
+
+[confirm]
+"apply.title" = "Uygulansın mı?"
+apply = "Uygula"
+"revert.title" = "Geri alınsın mı?"
+revert = "Geri al"
+cancel = "Vazgeç"
+"password-steps" = { one = "{n} adım parolanı isteyecek.", other = "{n} adım parolanı isteyecek." }
+
+[revert]
+button = "Geri al"
+
+[run]
+applying = "Uygulanıyor: {tweak}"
+reverting = "Geri alınıyor: {tweak}"
+close = "Kapat"
+done = "Tamamlandı"
+failed = "Başarısız oldu"
+"failed-body" = "Nedeni çıktıda yazıyor. Hatadan önce yapılanlar yine de geri alınabilir."
+
+[keys]
+revert = "geri al"
+"close-run" = "kapat"
+
+[cli]
+usage = "Kullanım: qtools, qtools --run <madde>..., qtools --revert <madde>..."
+"unknown-argument" = "Bilinmeyen argüman: {argument}"
+"unknown-tweak" = "{id} adında bir madde yok."
+applying = "Uygulanıyor: {tweak}"
+reverting = "Geri alınıyor: {tweak}"
+done = "tamam"
+failed = "başarısız: {reason}"
+"step-failed" = "{step}. adım başarısız: {reason}"
+stopped = "Kalan maddeler çalıştırılmadı."
