@@ -306,13 +306,10 @@ impl Tools {
         match event {
             TerminalEvent::Output => Self::watch(running),
             TerminalEvent::Exited(code) => {
+                // The outcome is drawn beside the run's title rather than as a toast: a toast
+                // floats over the terminal's bottom corner, where its note gives the exit code.
                 running.exit = Some(code);
-                let toast = if running.succeeded() {
-                    Toast::new(ToastKind::Success, t!("run.done"))
-                } else {
-                    Toast::new(ToastKind::Danger, t!("run.failed")).body(t!("run.failed-body"))
-                };
-                Command::batch([self.refresh(), Command::toast(toast)])
+                self.refresh()
             }
         }
     }
@@ -435,12 +432,21 @@ impl Tools {
             ui.row(|ui| {
                 ui.add(Text::new(title).role("title").no_wrap()).fill_width();
                 if running.exit.is_some() {
+                    let outcome = if running.succeeded() {
+                        Badge::new(t!("run.done")).variant("success")
+                    } else {
+                        Badge::new(t!("run.failed")).variant("danger")
+                    };
+                    ui.add(outcome);
                     ui.add(Button::new(t!("run.close")).on_press(Msg::CloseRun)).id("close-run");
                 }
             })
             .gap(2)
             .padding(Padding::symmetric(0, 2))
             .fill_width();
+            if running.exit.is_some() && !running.succeeded() {
+                ui.add(Text::new(t!("run.failed-body")).role("faint")).fill_width().padding(Padding::symmetric(0, 2));
+            }
             ui.add(Terminal::new(&running.session)).width(Length::Fill(1)).height(Length::Fill(1)).id("run");
         })
         .fill();

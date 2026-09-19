@@ -355,6 +355,24 @@ fn checked_tweaks_run_together_and_are_unchecked_afterwards() {
     assert!(h.app().checked.iter().all(|checked| !checked), "the checks are cleared once they ran");
 }
 
+/// The terminal's own note in its bottom corner says how the process ended; nothing of the
+/// screen may sit over it, or the exit code is lost behind the outcome.
+#[test]
+fn the_outcome_leaves_the_terminal_exit_note_readable() {
+    for (body, code, outcome) in [("echo \"$@\"", 0, "Done"), ("exit 1", 1, "It failed")] {
+        let script = Script::new(&format!("note-{code}"), body);
+        let mut h = harness_running(&script, every_tweak_off());
+        focus_tweaks(&mut h);
+        h.press("enter");
+        say_yes(&mut h);
+        wait_for_exit(&mut h);
+        let screen = h.screen();
+        assert!(screen.contains(&format!("exited with {code}")), "the exit note is whole:\n{screen}");
+        let title = screen.lines().find(|line| line.contains("Applying Mirror list")).unwrap_or_default();
+        assert!(title.contains(outcome), "the outcome stays beside the title:\n{screen}");
+    }
+}
+
 #[test]
 fn a_failed_run_says_so_and_keeps_its_output_on_screen() {
     let script = Script::new("fail", "echo 'mirror unreachable' >&2; exit 1");

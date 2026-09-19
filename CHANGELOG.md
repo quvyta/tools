@@ -2,6 +2,20 @@
 
 Every release of quvyta-tools, newest first. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/); while the version starts with 0, a minor release may change the command line or the files qtools keeps under `~/.local/state/quvyta-tools/`, and the notes say so when it does.
 
+## 0.1.5 - 2026-09-19
+
+### Added
+
+- A moving picture at the top of the README (also as MP4): checking two items, the confirmation, the run and the Security group. It is drawn from the test harness with a stand-in for the run, so nothing on it comes from a real machine.
+
+### Changed
+
+- When a run ends, its outcome (Done or It failed) stays beside the run's title instead of showing as a notification that fades; after a failure, the line under the title says the output explains why and that what was done can still be undone.
+
+### Fixed
+
+- The notification at the end of a run no longer covers the terminal's note in its bottom corner that gives the exit code.
+
 ## 0.1.4 - 2026-09-19
 
 ### Added

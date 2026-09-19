@@ -8,7 +8,7 @@
 [![Arch Linux](https://img.shields.io/badge/Arch_Linux-and_derivatives-1793d1?logo=archlinux&logoColor=white)](#requirements)
 [![Status: beta](https://img.shields.io/badge/status-beta-orange.svg)](CHANGELOG.md)
 
-![qtools: the Packages group with a half-applied item selected and its detail beside the list](https://raw.githubusercontent.com/quvyta/tools/main/docs/screenshots/list.png)
+![qtools: two items checked in the Packages group, the confirmation listing what they touch, the run asking for the password in its own terminal, both items applied, and a firewall in the Security group that someone turned off since](https://raw.githubusercontent.com/quvyta/tools/main/docs/screenshots/qtools.gif)
 
 **quvyta-tools** applies the settings Arch Linux users usually set up by hand, from one list: a
 fast mirror list, parallel downloads in pacman, the multilib repository, an AUR helper, a package
