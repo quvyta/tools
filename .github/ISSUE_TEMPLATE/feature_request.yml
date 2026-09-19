@@ -1,0 +1,20 @@
+name: Feature request
+description: A setting qtools could offer, or something it could do better.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What you are trying to do
+      description: What you set up by hand today, or what gets in your way, in your own words.
+    validations:
+      required: true
+  - type: textarea
+    id: touches
+    attributes:
+      label: What it touches
+      description: For a new setting, the packages, files and services it involves, and how it is undone. A rough idea is enough.
+  - type: textarea
+    id: now
+    attributes:
+      label: What you do today instead

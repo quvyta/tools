@@ -1,0 +1,127 @@
+# Japanese: checked against en.toml; Japanese has a single plural form.
+
+[meta]
+name = "日本語"
+code = "ja"
+
+[group]
+packages = "パッケージ"
+security = "セキュリティ"
+hardware = "ハードウェア"
+appearance = "外観"
+maintenance = "メンテナンス"
+
+[tweak.mirrors]
+title = "ミラーリスト"
+summary = "お住まいの国で最も速いミラーを選び、毎週更新します。"
+
+[tweak.pacman-options]
+title = "pacman の設定"
+summary = "パッケージを並列でダウンロードし、カラー表示と詳細なバージョン一覧を有効にします。"
+
+[tweak.multilib]
+title = "multilib リポジトリ"
+summary = "Steam や一部のドライバーが必要とする 32 ビットのリポジトリを追加します。次回の完全アップグレード（`pacman -Syu`）の後に使えるようになります。"
+
+[tweak.aur-helper]
+title = "AUR ヘルパー"
+summary = "AUR ヘルパーをソースからビルドし、公式リポジトリにないパッケージもコマンド一つでインストールできるようにします。"
+
+[tweak.cache-cleanup]
+title = "キャッシュ整理"
+summary = "毎週のタイマーで、ダウンロード済みの各パッケージを最新の数バージョンだけ残します。"
+
+[tweak.ssd-trim]
+title = "SSD TRIM"
+summary = "空いているブロックを週に一度 SSD に伝え、速さを保ち寿命を延ばします。"
+
+[tweak.journal-limit]
+title = "ジャーナル容量制限"
+summary = "システムログが使えるディスク容量を専用の drop-in ファイルで制限します。次回の起動か journald の再起動で有効になります。"
+
+[tweak.time-sync]
+title = "時刻同期"
+summary = "systemd 付属の時刻サービスで時計を正確に保ちます。"
+
+[tweak.firewall]
+title = "ファイアウォール"
+summary = "ufw をインストールして有効にします。外部からの接続は遮断し、外部への接続は許可します。qtools はポートを一切開けないため、SSH など外部から接続できる必要があるサービスには、それぞれ ufw allow ルールが必要です。"
+
+[tweak.ssh-hardening]
+title = "SSH の強化"
+summary = "専用の drop-in ファイルで、SSH のパスワードログインと root ログインを無効にします。次回の sshd 再起動で有効になり、以降は鍵でしかログインできません。リモートで使うマシンでは、先に鍵が設置済みか確認してください。"
+
+[option]
+"mirrors.country" = "国"
+"mirrors.count" = "ミラー数"
+"pacman.parallel" = "並列ダウンロード数"
+"aur.helper" = "ヘルパー"
+"aur.paru" = "paru"
+"aur.yay" = "yay"
+"journal.max-use" = "ジャーナル容量上限（MB）"
+
+[unavailable]
+"no-ssd" = "このマシンに SSD はありません"
+"other-time-service" = "別の時刻サービスが時計を管理しています"
+
+"no-openssh" = "openssh がインストールされていません"
+
+[header]
+tagline = "Arch Linux のおすすめ設定"
+
+[state]
+applied = "適用済み"
+off = "オフ"
+half = "一部"
+changed = "変更あり"
+
+[detail]
+touches = "変更対象"
+
+[touch]
+package = "パッケージ"
+service = "サービス"
+command = "コマンド"
+
+[hints]
+move = "移動"
+toggle = "選択"
+apply = "適用"
+
+[confirm]
+"apply.title" = "適用しますか？"
+apply = "適用"
+"revert.title" = "元に戻しますか？"
+revert = "元に戻す"
+cancel = "キャンセル"
+"password-steps" = { other = "{n} 個の手順でパスワードを求められます。" }
+
+[revert]
+button = "元に戻す"
+
+[run]
+applying = "適用中：{tweak}"
+reverting = "元に戻し中：{tweak}"
+close = "閉じる"
+done = "完了"
+failed = "失敗しました"
+"failed-body" = "原因は出力に表示されています。失敗より前に行われた変更は元に戻せます。"
+
+[keys]
+revert = "元に戻す"
+"close-run" = "閉じる"
+
+[cli]
+usage = "使い方：qtools, qtools --run <tweak>..., qtools --revert <tweak>..."
+"unknown-argument" = "不明な引数：{argument}"
+"unknown-tweak" = "{id} という設定はありません。"
+applying = "適用中：{tweak}"
+reverting = "元に戻し中：{tweak}"
+done = "完了"
+failed = "失敗：{reason}"
+"step-failed" = "手順 {step} が失敗しました：{reason}"
+stopped = "残りの設定は実行しませんでした。"
+
+[unsupported]
+title = "現在は Arch Linux のみ対応"
+message = "qtools は現在、Arch Linux とその派生ディストリビューションでのみ動作します。ほかのディストリビューションへの対応は今後予定しています。何も変更していません。"

@@ -1,5 +1,13 @@
 # qtools
 
+**The settings Arch Linux users set up by hand after an install, in one list: each one previewed, backed up and undoable.**
+
+[![crates.io](https://img.shields.io/crates/v/quvyta-tools.svg)](https://crates.io/crates/quvyta-tools)
+[![Downloads](https://img.shields.io/crates/d/quvyta-tools.svg)](https://crates.io/crates/quvyta-tools)
+[![Licence: MIT](https://img.shields.io/crates/l/quvyta-tools.svg)](LICENSE)
+[![Arch Linux](https://img.shields.io/badge/Arch_Linux-and_derivatives-1793d1?logo=archlinux&logoColor=white)](#requirements)
+[![Status: beta](https://img.shields.io/badge/status-beta-orange.svg)](CHANGELOG.md)
+
 ![qtools: the Packages group with a half-applied item selected and its detail beside the list](https://raw.githubusercontent.com/quvyta/tools/main/docs/screenshots/list.png)
 
 **quvyta-tools** applies the settings Arch Linux users usually set up by hand, from one list: a
@@ -98,7 +106,7 @@ how many steps will ask for your password.
 
 ## Languages
 
-The interface comes in English, Turkish, German, Spanish, French, Brazilian Portuguese and Russian. qtools follows your system language (`LC_ALL`, `LC_MESSAGES` or `LANG`) and falls back to English. In this release Brazilian Portuguese is not yet picked up from a regional setting such as `pt_BR.UTF-8`; qtools shows English for it until a later release. In the five newer languages a few key names in the bar at the bottom of the screen (such as `quit`) are still in English.
+The interface comes in English, Turkish, German, Spanish, French, Brazilian Portuguese, Russian, Simplified Chinese and Japanese. qtools follows your system language (`LC_ALL`, `LC_MESSAGES` or `LANG`), so `pt_BR.UTF-8` gives Brazilian Portuguese and `zh_CN.UTF-8` Simplified Chinese; any other language falls back to English.
 
 ## The Packages group
 
@@ -136,8 +144,8 @@ qtools --run mirrors pacman-options
 qtools --revert multilib
 ```
 
-The exit code is 0 when every item went through, 1 when one failed (the rest are not run) and
-2 when an argument made no sense.
+The exit code is 0 when every item went through, 1 when one failed (the rest are not run),
+2 when an argument made no sense and 3 when the distribution is not supported (nothing is run).
 
 ## Backups and undo
 
@@ -185,6 +193,10 @@ tests replace. Before your first commit, enable the checks (formatting, clippy, 
 ```sh
 git config core.hooksPath .githooks
 ```
+
+## Contributing
+
+Bug reports, ideas and pull requests are welcome; [CONTRIBUTING.md](CONTRIBUTING.md) explains how. What changed in each release is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Licence
 

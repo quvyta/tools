@@ -1,0 +1,78 @@
+name: Bug report
+description: Something in qtools does not work the way it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thank you for reporting. Please check that nothing private (host names, user names, keys, addresses) is visible in what you paste or attach.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to make it happen again
+      placeholder: |
+        1. Open qtools
+        2. Choose Firewall in the Security group
+        3. Press enter
+        4. ...
+  - type: input
+    id: version
+    attributes:
+      label: qtools version
+      description: The line `cargo install --list | grep quvyta-tools` prints, or the version your package manager shows.
+    validations:
+      required: true
+  - type: dropdown
+    id: items
+    attributes:
+      label: Item
+      description: The items involved, if any.
+      multiple: true
+      options:
+        - None, it is not about one item
+        - Mirror list
+        - Pacman options
+        - Multilib repository
+        - AUR helper
+        - Cache cleanup
+        - Firewall
+        - SSH hardening
+        - SSD trim
+        - Journal size limit
+        - Time sync
+  - type: dropdown
+    id: how
+    attributes:
+      label: Where
+      options:
+        - On the screen
+        - On the command line (--run or --revert)
+  - type: input
+    id: state
+    attributes:
+      label: State shown before and after
+      description: The state word next to the item, such as Off, Half, Applied or Changed.
+  - type: input
+    id: system
+    attributes:
+      label: Distribution
+      description: The NAME and ID_LIKE lines of /etc/os-release.
+      placeholder: Arch Linux, EndeavourOS, Manjaro, CachyOS, ...
+    validations:
+      required: true
+  - type: input
+    id: terminal
+    attributes:
+      label: Terminal and language
+      placeholder: kitty 0.44 with LANG=de_DE.UTF-8, ...
+  - type: textarea
+    id: shots
+    attributes:
+      label: Screenshot or output
+      description: A screenshot, the text qtools showed, or the exit code on the command line. Drag an image here to attach it.

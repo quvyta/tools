@@ -1,0 +1,127 @@
+# Simplified Chinese: checked against en.toml; Chinese has a single plural form.
+
+[meta]
+name = "简体中文"
+code = "zh-Hans"
+
+[group]
+packages = "软件包"
+security = "安全"
+hardware = "硬件"
+appearance = "外观"
+maintenance = "维护"
+
+[tweak.mirrors]
+title = "镜像源列表"
+summary = "选出你所在国家最快的镜像源，并每周刷新一次。"
+
+[tweak.pacman-options]
+title = "pacman 选项"
+summary = "并行下载软件包，并启用彩色输出和完整的版本列表。"
+
+[tweak.multilib]
+title = "multilib 仓库"
+summary = "添加 Steam 和部分驱动所需的 32 位仓库。下次完整升级（`pacman -Syu`）后即可使用。"
+
+[tweak.aur-helper]
+title = "AUR 助手"
+summary = "从源码构建一个 AUR 助手，官方仓库之外的软件包也能一条命令装好。"
+
+[tweak.cache-cleanup]
+title = "缓存清理"
+summary = "用每周运行的定时器清理下载的软件包，每个只保留最近几个版本。"
+
+[tweak.ssd-trim]
+title = "SSD TRIM"
+summary = "每周告诉 SSD 一次哪些块是空闲的，让它保持高速、寿命更长。"
+
+[tweak.journal-limit]
+title = "日志大小限制"
+summary = "通过单独的 drop-in 配置限制系统日志占用的磁盘空间。下次开机或 journald 重启后生效。"
+
+[tweak.time-sync]
+title = "时间同步"
+summary = "用 systemd 自带的时间服务让时钟保持准确。"
+
+[tweak.firewall]
+title = "防火墙"
+summary = "安装并启用 ufw：拦截所有传入连接，放行传出连接。qtools 不会开放任何端口，SSH 以及其他需要从外部访问的服务都要自行添加 ufw allow 规则。"
+
+[tweak.ssh-hardening]
+title = "SSH 加固"
+summary = "通过单独的 drop-in 配置禁止 SSH 密码登录和 root 登录。下次重启 sshd 后生效，之后只能用密钥登录；如果是远程连接的机器，请先确认你的密钥已经就位。"
+
+[option]
+"mirrors.country" = "国家"
+"mirrors.count" = "镜像数"
+"pacman.parallel" = "并行下载数"
+"aur.helper" = "助手"
+"aur.paru" = "paru"
+"aur.yay" = "yay"
+"journal.max-use" = "日志大小上限（MB）"
+
+[unavailable]
+"no-ssd" = "这台机器没有 SSD"
+"other-time-service" = "时钟已由其他时间服务管理"
+
+"no-openssh" = "未安装 openssh"
+
+[header]
+tagline = "Arch Linux 推荐设置"
+
+[state]
+applied = "已应用"
+off = "未启用"
+half = "部分"
+changed = "已改动"
+
+[detail]
+touches = "涉及"
+
+[touch]
+package = "软件包"
+service = "服务"
+command = "命令"
+
+[hints]
+move = "移动"
+toggle = "勾选"
+apply = "应用"
+
+[confirm]
+"apply.title" = "要应用吗？"
+apply = "应用"
+"revert.title" = "要撤销吗？"
+revert = "撤销"
+cancel = "取消"
+"password-steps" = { other = "有 {n} 个步骤需要输入密码。" }
+
+[revert]
+button = "撤销"
+
+[run]
+applying = "正在应用：{tweak}"
+reverting = "正在撤销：{tweak}"
+close = "关闭"
+done = "完成"
+failed = "失败了"
+"failed-body" = "原因见输出。失败前已完成的部分仍可撤销。"
+
+[keys]
+revert = "撤销"
+"close-run" = "关闭"
+
+[cli]
+usage = "用法：qtools, qtools --run <tweak>..., qtools --revert <tweak>..."
+"unknown-argument" = "未知参数：{argument}"
+"unknown-tweak" = "没有名为 {id} 的设置。"
+applying = "正在应用：{tweak}"
+reverting = "正在撤销：{tweak}"
+done = "完成"
+failed = "失败：{reason}"
+"step-failed" = "第 {step} 步失败：{reason}"
+stopped = "其余设置未执行。"
+
+[unsupported]
+title = "目前仅支持 Arch Linux"
+message = "qtools 目前只能在 Arch Linux 及其衍生发行版上运行，对其他发行版的支持以后会加入。本机未做任何更改。"

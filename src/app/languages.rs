@@ -46,35 +46,10 @@ fn focus_tweaks(h: &mut Harness<Tools>) {
     panic!("tab never reached the tweaks list");
 }
 
-/// The screen as text, one line per row, without the cell each double-width character hides
-/// behind it. `Harness::screen` keeps that cell as a space, which would split `防火墙` into
-/// `防 火 墙` and make every check for a Chinese or Japanese text fail.
-fn screen<A: App>(h: &Harness<A>) -> String {
-    let buffer = h.buffer();
-    let area = buffer.area;
-    let mut out = String::new();
-    for y in 0..area.height {
-        let mut row = String::new();
-        let mut hidden = 0;
-        for x in 0..area.width {
-            if hidden > 0 {
-                hidden -= 1;
-                continue;
-            }
-            let symbol = buffer[(x, y)].symbol();
-            hidden = text::width(symbol).saturating_sub(1);
-            row.push_str(symbol);
-        }
-        out.push_str(row.trim_end());
-        out.push('\n');
-    }
-    out
-}
-
 /// The screen reads cleanly: no key without text, no line wider than the screen, and every
 /// double-width character keeps the cell after it to itself, so nothing after it shifts.
 fn assert_clean<A: App>(h: &Harness<A>, what: &str) {
-    let screen = screen(h);
+    let screen = h.screen();
     assert!(!screen.contains('⟦'), "{what}: a key has no text:\n{screen}");
     let buffer = h.buffer();
     let area = buffer.area;
@@ -98,7 +73,7 @@ fn assert_clean<A: App>(h: &Harness<A>, what: &str) {
 
 /// The same check with the forbidden shapes of the aesthetic rules, for ASCII mode.
 fn assert_no_forbidden_shapes<A: App>(h: &Harness<A>, what: &str) {
-    let screen = screen(h);
+    let screen = h.screen();
     for forbidden in ["[ ]", "[x]", "(o)", "|", "==="] {
         assert!(!screen.contains(forbidden), "{what}: `{forbidden}` is forbidden in every mode:\n{screen}");
     }
@@ -113,7 +88,7 @@ fn every_group_reads_in_full_in_every_language_and_size() {
                 h.send(Msg::PickGroup(group.key().to_owned()));
                 let what = format!("{code} {width}x{height} {}", group.key());
                 assert_clean(&h, &what);
-                let screen = screen(&h);
+                let screen = h.screen();
                 let label = text_in(&code, &format!("group.{}", group.key()), &[]);
                 assert!(screen.contains(&label), "{what}: the open group `{label}` is cut:\n{screen}");
                 if height < 20 {
@@ -133,7 +108,7 @@ fn the_state_words_line_up_in_every_language() {
     for code in codes() {
         let h = harness(&code, 100, 24);
         let off = text_in(&code, "state.off", &[]);
-        let screen = screen(&h);
+        let screen = h.screen();
         let ends: BTreeSet<usize> = screen
             .lines()
             .filter(|row| row.trim_end().ends_with(off.as_str()))
@@ -151,7 +126,7 @@ fn the_detail_reads_in_every_language_on_a_narrow_screen() {
         h.press("alt+b");
         let what = format!("{code} 48x20 detail");
         assert_clean(&h, &what);
-        let screen = screen(&h);
+        let screen = h.screen();
         let title = text_in(&code, "tweak.mirrors.title", &[]);
         assert!(screen.matches(title.as_str()).count() >= 2, "{what}: the title heads the detail:\n{screen}");
         let touches = text_in(&code, "detail.touches", &[]);
@@ -172,7 +147,7 @@ fn the_confirmation_reads_in_every_language_at_every_size() {
             h.press("enter");
             let what = format!("{code} {width}x{height} confirmation");
             assert_clean(&h, &what);
-            let screen = screen(&h);
+            let screen = h.screen();
             for key in ["confirm.apply.title", "confirm.apply", "confirm.cancel"] {
                 let label = text_in(&code, key, &[]);
                 assert!(screen.contains(&label), "{what}: `{label}` is cut:\n{screen}");
@@ -201,7 +176,7 @@ fn the_unsupported_notice_reads_in_every_language() {
             h.set_locale(&code).set_glyph_mode(GlyphMode::Unicode);
             let what = format!("{code} {width}x{height} unsupported");
             assert_clean(&h, &what);
-            let screen = screen(&h);
+            let screen = h.screen();
             let title = text_in(&code, "unsupported.title", &[]);
             assert!(screen.contains(&title), "{what}: `{title}` is cut:\n{screen}");
         }

@@ -12,6 +12,8 @@ pub const LOCALES: &[(&str, &str)] = &[
     ("fr.toml", include_str!("../assets/locales/fr.toml")),
     ("pt-BR.toml", include_str!("../assets/locales/pt-BR.toml")),
     ("ru.toml", include_str!("../assets/locales/ru.toml")),
+    ("zh-Hans.toml", include_str!("../assets/locales/zh-Hans.toml")),
+    ("ja.toml", include_str!("../assets/locales/ja.toml")),
 ];
 
 /// The compiled-in keymap: the application's own keys.

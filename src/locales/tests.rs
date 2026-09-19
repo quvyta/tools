@@ -92,8 +92,9 @@ fn placeholders(text: &str) -> BTreeSet<String> {
 /// The plural categories whole counts fall into in a language, by the framework's own rule, so a
 /// file is asked for exactly the forms the screen can pick.
 fn categories_for(code: &str) -> BTreeSet<String> {
-    let language = code.split('-').next().unwrap_or(code);
-    let mut needed: BTreeSet<String> = (0..=200).map(|n| PluralCategory::of(language, n).name().to_owned()).collect();
+    // The framework reads the language out of a regional or script code itself, so `pt-BR`
+    // is asked for Brazilian Portuguese's forms, not a guess from `pt`.
+    let mut needed: BTreeSet<String> = (0..=200).map(|n| PluralCategory::of(code, n).name().to_owned()).collect();
     // `other` is what every lookup falls back to, so it is always written.
     needed.insert("other".to_owned());
     needed
@@ -171,4 +172,38 @@ fn the_categories_follow_each_language() {
     assert_eq!(categories_for("ja"), set(&["other"]));
     assert_eq!(categories_for("zh-Hans"), set(&["other"]));
     assert_eq!(categories_for("pt-BR"), set(&["one", "other"]));
+}
+
+#[test]
+fn the_system_language_picks_the_matching_file() {
+    let env = env();
+    let detect = |lang: &str| {
+        let lang = lang.to_owned();
+        env.i18n().detect(move |name| (name == "LANG").then(|| lang.clone()))
+    };
+    for (system, wanted) in [
+        ("pt_BR.UTF-8", "pt-BR"),
+        ("zh_CN.UTF-8", "zh-Hans"),
+        ("zh_SG.UTF-8", "zh-Hans"),
+        ("ja_JP.UTF-8", "ja"),
+        ("de_AT.UTF-8", "de"),
+        ("ru_RU.UTF-8", "ru"),
+        ("tr_TR.UTF-8", "tr"),
+        // Portugal has no file of its own; Brazilian Portuguese is the one Portuguese there is.
+        ("pt_PT.UTF-8", "pt-BR"),
+    ] {
+        assert_eq!(detect(system).as_deref(), Some(wanted), "{system}");
+    }
+    assert_eq!(detect("C.UTF-8"), None, "C names no language");
+}
+
+#[test]
+fn the_framework_speaks_every_language_the_application_does() {
+    // Dialog buttons, key names and pickers come from the framework; a gap there would put
+    // English words on an otherwise translated screen.
+    let env = env();
+    for file in files() {
+        let missing = env.i18n().missing_keys(&file.code, "en");
+        assert!(missing.is_empty(), "`{}` falls back to English for {missing:?}", file.code);
+    }
 }
