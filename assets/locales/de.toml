@@ -67,6 +67,14 @@ summary = "Installiert ufw und schaltet sie ein: Eingehende Verbindungen werden 
 title = "SSH-Härtung"
 summary = "Schaltet Passwort- und Root-Anmeldungen über SSH in einer eigenen Drop-in-Datei ab. Wirksam ab dem nächsten Neustart von sshd; danach kommen nur noch Schlüssel hinein. Auf einem Rechner, den du aus der Ferne erreichst, sollte dein Schlüssel also schon hinterlegt sein."
 
+[tweak.qt-gtk-match]
+title = "Qt folgt GTK"
+summary = "Lässt Qt-Anwendungen den Farben und Schriften von GTK folgen. Wirksam ab der nächsten Anmeldung."
+
+[tweak.fonts]
+title = "Schriftarten"
+summary = "Macht die Schriftfamilie Noto zum systemweiten Standard für serifenlose, Serifen- und Festbreitenschrift, mit ihrem Emoji-Schriftschnitt als Rückfalloption."
+
 [option]
 "mirrors.country" = "Land"
 "mirrors.count" = "Spiegelserver"
@@ -81,6 +89,7 @@ summary = "Schaltet Passwort- und Root-Anmeldungen über SSH in einer eigenen Dr
 "other-time-service" = "Ein anderer Zeitdienst stellt die Uhr"
 
 "no-openssh" = "openssh ist nicht installiert"
+"no-graphical-session" = "Keine grafische Sitzung auf diesem Rechner"
 
 "no-bluetooth" = "Kein Bluetooth-Controller in diesem Rechner"
 "no-battery" = "Kein Akku in diesem Rechner"

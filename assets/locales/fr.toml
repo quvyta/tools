@@ -67,6 +67,14 @@ summary = "Installe ufw et l’active : les connexions entrantes sont bloquées
 title = "Durcissement SSH"
 summary = "Désactive les connexions SSH par mot de passe et en root, dans un fichier drop-in dédié. Prend effet au prochain redémarrage de sshd ; ensuite, seules les clés permettent d’entrer. Sur une machine à laquelle vous accédez à distance, vérifiez que votre clé est déjà en place."
 
+[tweak.qt-gtk-match]
+title = "Qt suit GTK"
+summary = "Fait suivre aux applications Qt les couleurs et les polices de GTK. Prend effet à la prochaine connexion."
+
+[tweak.fonts]
+title = "Polices"
+summary = "Fait de la famille Noto la police système par défaut pour le texte sans-serif, serif et à espacement fixe, avec sa variante emoji ajoutée en secours."
+
 [option]
 "mirrors.country" = "Pays"
 "mirrors.count" = "Miroirs"
@@ -81,6 +89,7 @@ summary = "Désactive les connexions SSH par mot de passe et en root, dans un fi
 "other-time-service" = "Un autre service de temps gère l’horloge"
 
 "no-openssh" = "openssh n’est pas installé"
+"no-graphical-session" = "Aucune session graphique sur cette machine"
 
 "no-bluetooth" = "Aucun contrôleur Bluetooth sur cette machine"
 "no-battery" = "Aucune batterie sur cette machine"

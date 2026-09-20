@@ -67,6 +67,14 @@ summary = "ufw'yi kurar ve açar: dışarıdan gelen bağlantılar engellenir, d
 title = "SSH sıkılaştırma"
 summary = "SSH'de parolayla girişi ve root girişini kendi ek dosyasıyla kapatır. sshd bir sonraki yeniden başlatılışında geçerli olur; o andan sonra yalnızca anahtarla girilebilir, bu yüzden uzaktan bağlandığınız bir makinede anahtarınızın önceden yüklü olduğundan emin olun."
 
+[tweak.qt-gtk-match]
+title = "Qt, GTK'ye uyar"
+summary = "Qt uygulamalarının GTK'nın renk ve yazı tipi ayarını izlemesini sağlar. Bir sonraki oturum açılışında geçerli olur."
+
+[tweak.fonts]
+title = "Yazı tipleri"
+summary = "Noto yazı tipi ailesini sistem genelinde düz, tırnaklı ve eş aralıklı yazı için varsayılan yapar, emoji yüzünü yedek olarak ekler."
+
 [option]
 "mirrors.country" = "Ülke"
 "mirrors.count" = "Yansı sayısı"
@@ -81,6 +89,7 @@ summary = "SSH'de parolayla girişi ve root girişini kendi ek dosyasıyla kapat
 "other-time-service" = "Saati başka bir zaman servisi tutuyor"
 
 "no-openssh" = "openssh kurulu değil"
+"no-graphical-session" = "Bu makinede grafik oturumu yok"
 
 "no-bluetooth" = "Bu makinede Bluetooth denetleyicisi yok"
 "no-battery" = "Bu makinede pil yok"

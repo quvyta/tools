@@ -67,6 +67,14 @@ summary = "Instala ufw y lo activa: las conexiones entrantes se bloquean y las s
 title = "Endurecer SSH"
 summary = "Desactiva el inicio de sesión por SSH con contraseña y como root, en un archivo drop-in propio. Se aplica en el próximo reinicio de sshd; desde entonces solo se entra con clave, así que en una máquina a la que accedes en remoto asegúrate de que tu clave ya esté instalada."
 
+[tweak.qt-gtk-match]
+title = "Qt sigue a GTK"
+summary = "Hace que las aplicaciones Qt sigan los colores y las fuentes de GTK. Se aplica en el próximo inicio de sesión."
+
+[tweak.fonts]
+title = "Tipografías"
+summary = "Convierte la familia Noto en la predeterminada del sistema para texto sans, serif y monoespaciado, con su variante de emoji añadida como alternativa."
+
 [option]
 "mirrors.country" = "País"
 "mirrors.count" = "Espejos"
@@ -81,6 +89,7 @@ summary = "Desactiva el inicio de sesión por SSH con contraseña y como root, e
 "other-time-service" = "Otro servicio de tiempo gestiona el reloj"
 
 "no-openssh" = "openssh no está instalado"
+"no-graphical-session" = "No hay sesión gráfica en esta máquina"
 
 "no-bluetooth" = "Esta máquina no tiene controlador Bluetooth"
 "no-battery" = "Esta máquina no tiene batería"

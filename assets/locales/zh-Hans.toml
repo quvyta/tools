@@ -67,6 +67,14 @@ summary = "安装并启用 ufw：拦截所有传入连接，放行传出连接�
 title = "SSH 加固"
 summary = "通过单独的 drop-in 配置禁止 SSH 密码登录和 root 登录。下次重启 sshd 后生效，之后只能用密钥登录；如果是远程连接的机器，请先确认你的密钥已经就位。"
 
+[tweak.qt-gtk-match]
+title = "Qt 跟随 GTK"
+summary = "让 Qt 应用跟随 GTK 的颜色和字体设置。下次登录后生效。"
+
+[tweak.fonts]
+title = "字体"
+summary = "将 Noto 字体家族设为系统默认的无衬线、衬线和等宽字体，并加入其表情符号字重作为后备。"
+
 [option]
 "mirrors.country" = "国家"
 "mirrors.count" = "镜像数"
@@ -81,6 +89,7 @@ summary = "通过单独的 drop-in 配置禁止 SSH 密码登录和 root 登录�
 "other-time-service" = "时钟已由其他时间服务管理"
 
 "no-openssh" = "未安装 openssh"
+"no-graphical-session" = "这台机器没有图形会话"
 
 "no-bluetooth" = "这台机器没有蓝牙控制器"
 "no-battery" = "这台机器没有电池"

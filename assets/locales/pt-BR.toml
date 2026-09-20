@@ -67,6 +67,14 @@ summary = "Instala o ufw e o ativa: conexões de entrada são bloqueadas, as de 
 title = "Proteção do SSH"
 summary = "Desativa o login por senha e o login como root via SSH, em um arquivo drop-in próprio. Vale a partir do próximo reinício do sshd; daí em diante só se entra com chave, então, numa máquina que você acessa remotamente, confira se a sua chave já está instalada."
 
+[tweak.qt-gtk-match]
+title = "Qt segue o GTK"
+summary = "Faz os aplicativos Qt seguirem as cores e as fontes do GTK. Vale a partir do próximo login."
+
+[tweak.fonts]
+title = "Fontes"
+summary = "Torna a família Noto o padrão do sistema para texto sans, serifado e monoespaçado, com a variante de emoji adicionada como alternativa."
+
 [option]
 "mirrors.country" = "País"
 "mirrors.count" = "Espelhos"
@@ -81,6 +89,7 @@ summary = "Desativa o login por senha e o login como root via SSH, em um arquivo
 "other-time-service" = "Outro serviço de horário cuida do relógio"
 
 "no-openssh" = "O openssh não está instalado"
+"no-graphical-session" = "Não há sessão gráfica nesta máquina"
 
 "no-bluetooth" = "Esta máquina não tem controlador Bluetooth"
 "no-battery" = "Esta máquina não tem bateria"

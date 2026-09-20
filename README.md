@@ -134,6 +134,13 @@ The interface comes in English, Turkish, German, Spanish, French, Brazilian Port
 | Laptop power management | `laptop-power` | Only on a machine with a battery, and only when `power-profiles-daemon` is not already managing power: installs `tlp` and enables `tlp.service`, at tlp's own defaults. |
 | NVIDIA and Wayland | `nvidia-wayland` | Only with an NVIDIA card whose driver is already installed: writes `options nvidia_drm modeset=1` to `/etc/modprobe.d/50-quvyta-nvidia.conf` and enables the suspend, resume and hibernate services. It takes effect at the next boot; if the nvidia module is built into your initramfs, run `mkinitcpio -P` as well. qtools does not install the driver: which one is right depends on the card and the kernel, and a wrong one can leave the machine without a display. |
 
+## The Appearance group
+
+| Item | Id | What it does |
+|---|---|---|
+| Qt matches GTK | `qt-gtk-match` | Only on a machine with a graphical session: writes `QT_QPA_PLATFORMTHEME=gtk3` to `/etc/environment.d/90-quvyta-qt.conf`, so Qt applications follow GTK's colours and fonts instead of looking like strangers next to them. `qt6-base` already ships the plugin, so nothing extra is installed; it takes effect the next time you log in. |
+| Fonts | `fonts` | Installs `noto-fonts`, `noto-fonts-emoji` and `noto-fonts-cjk`, then writes `/etc/fonts/local.conf` so `sans-serif`, `serif` and `monospace` resolve to Noto Sans, Noto Serif and Noto Sans Mono, with Noto Color Emoji behind each of them as a fallback. Arch's own fontconfig defaults, such as hinting and subpixel order, stay untouched. |
+
 ## The Maintenance group
 
 | Item | Id | What it does |
@@ -141,8 +148,6 @@ The interface comes in English, Turkish, German, Spanish, French, Brazilian Port
 | SSD trim | `ssd-trim` | Enables `fstrim.timer` on machines with a non-rotational disk. |
 | Journal size limit | `journal-limit` | Caps the system log at 500 MB through a drop-in under `/etc/systemd/journald.conf.d/`; takes effect at the next boot or journald restart. |
 | Time sync | `time-sync` | Enables `systemd-timesyncd.service`, unless another time service (chrony, ntp, openntpd) is installed. |
-
-The Appearance group is still empty; it comes in a later release.
 
 ## From the command line
 

@@ -2,6 +2,7 @@
 
 use crate::tweak::{Group, Tweak};
 
+pub mod appearance;
 pub mod hardware;
 pub mod maintenance;
 pub mod packages;
@@ -21,6 +22,8 @@ pub fn all() -> Vec<Tweak> {
         hardware::bluetooth(),
         hardware::laptop_power(),
         hardware::nvidia_wayland(),
+        appearance::qt_gtk_match(),
+        appearance::fonts(),
         maintenance::ssd_trim(),
         maintenance::journal_limit(500),
         maintenance::time_sync(),

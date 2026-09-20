@@ -2,6 +2,16 @@
 
 Every release of quvyta-tools, newest first. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/); while the version starts with 0, a minor release may change the command line or the files qtools keeps under `~/.local/state/quvyta-tools/`, and the notes say so when it does.
 
+## 0.1.7 - 2026-09-20
+
+### Added
+
+- The Appearance group, with two items. Qt matches GTK (`qt-gtk-match`), only on a machine with a graphical session: `QT_QPA_PLATFORMTHEME=gtk3` in an `/etc/environment.d` file of qtools' own, so Qt applications follow GTK's colours and fonts. It needs no extra package, since `qt6-base` already ships the plugin, and it takes effect at the next login rather than in the running session. Fonts (`fonts`): installs the Noto Latin, emoji and CJK sets and writes an `/etc/fonts/local.conf` of qtools' own, where `sans-serif`, `serif` and `monospace` resolve to Noto Sans, Noto Serif and Noto Sans Mono, each with Noto Color Emoji behind it as a fallback. Arch's own fontconfig defaults, such as hinting and subpixel order, are left alone.
+
+### Notes
+
+- Neither item touches anything in your home folder; both write a file of their own under `/etc` and leave the files Arch or your desktop already manage untouched.
+
 ## 0.1.6 - 2026-09-20
 
 ### Added

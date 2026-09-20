@@ -67,6 +67,14 @@ summary = "ufw をインストールして有効にします。外部からの�
 title = "SSH の強化"
 summary = "専用の drop-in ファイルで、SSH のパスワードログインと root ログインを無効にします。次回の sshd 再起動で有効になり、以降は鍵でしかログインできません。リモートで使うマシンでは、先に鍵が設置済みか確認してください。"
 
+[tweak.qt-gtk-match]
+title = "Qt を GTK に合わせる"
+summary = "Qt アプリケーションが GTK の色とフォントに従うようにします。次回のログインから有効になります。"
+
+[tweak.fonts]
+title = "フォント"
+summary = "Noto フォントファミリーをシステム全体のサンセリフ・セリフ・等幅のデフォルトにし、絵文字書体を代替として追加します。"
+
 [option]
 "mirrors.country" = "国"
 "mirrors.count" = "ミラー数"
@@ -81,6 +89,7 @@ summary = "専用の drop-in ファイルで、SSH のパスワードログイ�
 "other-time-service" = "別の時刻サービスが時計を管理しています"
 
 "no-openssh" = "openssh がインストールされていません"
+"no-graphical-session" = "このマシンにはグラフィカルセッションがありません"
 
 "no-bluetooth" = "このマシンに Bluetooth コントローラーはありません"
 "no-battery" = "このマシンにバッテリーはありません"

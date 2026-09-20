@@ -306,7 +306,12 @@ fn time_sync_steps_aside_when_openntpd_keeps_the_clock() {
 #[test]
 fn every_unavailable_reason_in_the_catalog_reads_in_both_languages() {
     let env = crate::locales::env();
-    for key in ["unavailable.no-ssd", "unavailable.other-time-service", "unavailable.no-openssh"] {
+    for key in [
+        "unavailable.no-ssd",
+        "unavailable.other-time-service",
+        "unavailable.no-openssh",
+        "unavailable.no-graphical-session",
+    ] {
         for code in ["en", "tr"] {
             assert!(env.i18n().has(code, key), "`{key}` has no text in `{code}`");
         }
@@ -633,6 +638,180 @@ fn the_sidebar_order_and_the_catalog_order_agree() {
     let mut sorted = groups.clone();
     sorted.sort_by_key(|group| Group::ALL.iter().position(|g| g == group));
     assert_eq!(groups, sorted, "the catalog lists its groups in sidebar order");
+}
+
+const GRAPHICAL_CHECK: &str = "sh -c test -e /usr/bin/Xwayland -o -e /usr/bin/X";
+const QT_ENVIRONMENT_D: &str = "/etc/environment.d/90-quvyta-qt.conf";
+
+#[test]
+fn the_appearance_group_has_its_two_tweaks() {
+    let ids: Vec<&str> = in_group(Group::Appearance).iter().map(|tweak| tweak.id).collect();
+    assert_eq!(ids, ["qt-gtk-match", "fonts"]);
+}
+
+#[test]
+fn qt_gtk_match_touches_only_its_own_drop_in() {
+    assert_eq!(appearance::qt_gtk_match().touches(), vec![Touch::File(QT_ENVIRONMENT_D.into())]);
+}
+
+#[test]
+fn qt_gtk_match_fits_a_machine_with_a_graphical_session() {
+    let mut system = FakeSystem::new();
+    system.answer(GRAPHICAL_CHECK, ok(""));
+    assert_eq!((appearance::qt_gtk_match().applies_to)(&mut system), Availability::Yes);
+}
+
+#[test]
+fn qt_gtk_match_does_not_fit_a_headless_machine() {
+    let mut system = FakeSystem::new();
+    system.answer(GRAPHICAL_CHECK, no());
+    assert_eq!(
+        (appearance::qt_gtk_match().applies_to)(&mut system),
+        Availability::No("unavailable.no-graphical-session")
+    );
+    assert_eq!(
+        appearance::qt_gtk_match().state(&mut system).expect("nothing else runs"),
+        TweakState::Unavailable("unavailable.no-graphical-session")
+    );
+}
+
+#[test]
+fn qt_gtk_match_is_off_applied_or_changed_by_what_the_drop_in_holds() {
+    let mut system = FakeSystem::new();
+    system.answer(GRAPHICAL_CHECK, ok(""));
+    let tweak = appearance::qt_gtk_match();
+    assert_eq!(tweak.state(&mut system).expect("the file reads"), TweakState::Off);
+
+    system.file(QT_ENVIRONMENT_D, "QT_QPA_PLATFORMTHEME=gtk3\n");
+    assert_eq!(tweak.state(&mut system).expect("the file reads"), TweakState::Applied);
+
+    system.file(QT_ENVIRONMENT_D, "QT_QPA_PLATFORMTHEME=qt6ct\n");
+    assert_eq!(
+        tweak.state(&mut system).expect("the file reads"),
+        TweakState::Changed("QT_QPA_PLATFORMTHEME=qt6ct\n".into())
+    );
+}
+
+#[test]
+fn applying_qt_gtk_match_writes_the_drop_in_and_runs_no_command() {
+    let mut system = FakeSystem::new();
+    let mut journal = crate::state::Journal::default();
+
+    appearance::qt_gtk_match()
+        .apply(&mut system, &mut journal, std::path::Path::new("/tmp/state"))
+        .expect("the file is written");
+
+    assert_eq!(
+        system.read(std::path::Path::new(QT_ENVIRONMENT_D)).expect("the fake reads"),
+        Some("QT_QPA_PLATFORMTHEME=gtk3\n".into())
+    );
+    assert!(system.calls().is_empty(), "an environment.d drop-in needs no command: {:?}", system.calls());
+}
+
+const FONTCONFIG_LOCAL: &str = "/etc/fonts/local.conf";
+
+#[test]
+fn fonts_touches_its_three_packages_and_its_own_local_conf() {
+    assert_eq!(
+        appearance::fonts().touches(),
+        vec![
+            Touch::Package("noto-fonts".into()),
+            Touch::Package("noto-fonts-emoji".into()),
+            Touch::Package("noto-fonts-cjk".into()),
+            Touch::File(FONTCONFIG_LOCAL.into()),
+        ]
+    );
+}
+
+#[test]
+fn fonts_fits_every_machine_and_has_nothing_to_set() {
+    let tweak = appearance::fonts();
+    assert_eq!((tweak.applies_to)(&mut FakeSystem::new()), Availability::Yes);
+    assert!(tweak.options.is_empty());
+}
+
+#[test]
+fn applying_fonts_installs_noto_and_writes_the_family_aliases() {
+    let mut system = FakeSystem::new();
+    system.answer("sudo pacman -S --needed --noconfirm noto-fonts", ok(""));
+    system.answer("sudo pacman -S --needed --noconfirm noto-fonts-emoji", ok(""));
+    system.answer("sudo pacman -S --needed --noconfirm noto-fonts-cjk", ok(""));
+    let mut journal = crate::state::Journal::default();
+
+    appearance::fonts().apply(&mut system, &mut journal, std::path::Path::new("/tmp/state")).expect("it runs");
+
+    assert_eq!(
+        system.read(std::path::Path::new(FONTCONFIG_LOCAL)).expect("the fake reads"),
+        Some(appearance::fontconfig_local())
+    );
+    assert!(
+        system.calls().contains(&"sudo pacman -S --needed --noconfirm noto-fonts-cjk".to_owned()),
+        "{:?}",
+        system.calls()
+    );
+}
+
+/// The `<alias>` blocks of a fontconfig file, as (generic family, preferred families in order).
+///
+/// Read out of the XML rather than compared to a fixed string, so the test can say what the
+/// file *means*: which generic name each Noto family answers to, and that the emoji face sits
+/// behind the text face instead of replacing it.
+fn font_aliases(xml: &str) -> Vec<(String, Vec<String>)> {
+    fn families(fragment: &str) -> Vec<String> {
+        fragment
+            .split("<family>")
+            .skip(1)
+            .filter_map(|rest| rest.split_once("</family>"))
+            .map(|(name, _)| name.trim().to_owned())
+            .collect()
+    }
+    xml.split("<alias>")
+        .skip(1)
+        .filter_map(|rest| rest.split_once("</alias>"))
+        .map(|(block, _)| {
+            let (generic, prefer) = block.split_once("<prefer>").expect("an alias has a <prefer> list");
+            let name = families(generic).first().cloned().expect("an alias names a generic family");
+            (name, families(prefer))
+        })
+        .collect()
+}
+
+#[test]
+fn applying_fonts_points_every_generic_name_at_noto_with_emoji_behind_it() {
+    let mut system = FakeSystem::new();
+    system.answer("sudo pacman -S --needed --noconfirm noto-fonts", ok(""));
+    system.answer("sudo pacman -S --needed --noconfirm noto-fonts-emoji", ok(""));
+    system.answer("sudo pacman -S --needed --noconfirm noto-fonts-cjk", ok(""));
+    let mut journal = crate::state::Journal::default();
+
+    appearance::fonts().apply(&mut system, &mut journal, std::path::Path::new("/tmp/state")).expect("it runs");
+
+    let written =
+        system.read(std::path::Path::new(FONTCONFIG_LOCAL)).expect("the fake reads").expect("the tweak wrote the file");
+    assert_eq!(
+        font_aliases(&written),
+        vec![
+            ("sans-serif".to_owned(), vec!["Noto Sans".to_owned(), "Noto Color Emoji".to_owned()]),
+            ("serif".to_owned(), vec!["Noto Serif".to_owned(), "Noto Color Emoji".to_owned()]),
+            ("monospace".to_owned(), vec!["Noto Sans Mono".to_owned(), "Noto Color Emoji".to_owned()]),
+        ]
+    );
+}
+
+#[test]
+fn fonts_is_off_applied_or_changed_by_what_the_local_conf_holds() {
+    let mut system = FakeSystem::new();
+    let tweak = appearance::fonts();
+    assert_eq!(tweak.state(&mut system).expect("the file reads"), TweakState::Off);
+
+    system.answer("pacman -Q noto-fonts", ok("noto-fonts 1.0-1"));
+    system.answer("pacman -Q noto-fonts-emoji", ok("noto-fonts-emoji 1.0-1"));
+    system.answer("pacman -Q noto-fonts-cjk", ok("noto-fonts-cjk 1.0-1"));
+    system.file(FONTCONFIG_LOCAL, &appearance::fontconfig_local());
+    assert_eq!(tweak.state(&mut system).expect("the file reads"), TweakState::Applied);
+
+    system.file(FONTCONFIG_LOCAL, "<fontconfig/>\n");
+    assert_eq!(tweak.state(&mut system).expect("the file reads"), TweakState::Changed("<fontconfig/>\n".into()));
 }
 
 const UFW_CHECK: &str = "sh -c grep -qx 'ENABLED=yes' /etc/ufw/ufw.conf";

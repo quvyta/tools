@@ -67,6 +67,14 @@ summary = "Installs ufw and turns it on: incoming connections are blocked, outgo
 title = "SSH hardening"
 summary = "Turns off password and root logins over SSH in a drop-in of its own. Takes effect at the next sshd restart; from then on only keys get in, so on a machine you reach remotely make sure your key is already in place."
 
+[tweak.qt-gtk-match]
+title = "Qt matches GTK"
+summary = "Makes Qt applications follow GTK's colours and fonts. Takes effect the next time you log in."
+
+[tweak.fonts]
+title = "Fonts"
+summary = "Makes the Noto family the system default for sans, serif and monospace text, with its emoji face added as a fallback."
+
 [option]
 "mirrors.country" = "Country"
 "mirrors.count" = "Mirrors"
@@ -81,6 +89,7 @@ summary = "Turns off password and root logins over SSH in a drop-in of its own. 
 "other-time-service" = "Another time service keeps the clock"
 
 "no-openssh" = "openssh is not installed"
+"no-graphical-session" = "No graphical session on this machine"
 
 "no-bluetooth" = "No Bluetooth controller on this machine"
 "no-battery" = "No battery on this machine"
