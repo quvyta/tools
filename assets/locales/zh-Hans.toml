@@ -43,6 +43,22 @@ summary = "通过单独的 drop-in 配置限制系统日志占用的磁盘空间
 title = "时间同步"
 summary = "用 systemd 自带的时间服务让时钟保持准确。"
 
+[tweak.zram-swap]
+title = "内存中的压缩交换分区"
+summary = "在内存中添加一个压缩交换设备，大小为你内存的一半，与已有的交换空间并存而不取代它。下次开机或 zram 服务重新启动后生效。"
+
+[tweak.bluetooth]
+title = "蓝牙"
+summary = "安装 bluez 及其工具，并启用蓝牙服务。"
+
+[tweak.laptop-power]
+title = "笔记本电源管理"
+summary = "安装 tlp 并以其默认设置启用。如果 power-profiles-daemon 已经在管理电源，则让路。"
+
+[tweak.nvidia-wayland]
+title = "NVIDIA 与 Wayland"
+summary = "启用 NVIDIA 的内核 modesetting 以及它的挂起服务，这是 Wayland 会话顺畅运行所需要的。下次开机后生效；如果 nvidia 模块已内置到 initramfs 中，还需要额外运行 `mkinitcpio -P`。"
+
 [tweak.firewall]
 title = "防火墙"
 summary = "安装并启用 ufw：拦截所有传入连接，放行传出连接。qtools 不会开放任何端口，SSH 以及其他需要从外部访问的服务都要自行添加 ufw allow 规则。"
@@ -65,6 +81,12 @@ summary = "通过单独的 drop-in 配置禁止 SSH 密码登录和 root 登录�
 "other-time-service" = "时钟已由其他时间服务管理"
 
 "no-openssh" = "未安装 openssh"
+
+"no-bluetooth" = "这台机器没有蓝牙控制器"
+"no-battery" = "这台机器没有电池"
+"power-profiles-daemon" = "电源已由 power-profiles-daemon 管理"
+"no-nvidia" = "这台机器没有 NVIDIA 显卡"
+"no-nvidia-driver" = "未安装 NVIDIA 驱动"
 
 [header]
 tagline = "Arch Linux 推荐设置"

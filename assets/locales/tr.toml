@@ -43,6 +43,22 @@ summary = "Sistem günlüğünün diskte kaplayabileceği alanı kendi ek dosyas
 title = "Zaman eşitleme"
 summary = "Saati systemd'nin kendi zaman servisiyle doğru tutar."
 
+[tweak.zram-swap]
+title = "RAM'de sıkıştırılmış takas"
+summary = "Belleğinin yarısı büyüklüğünde, RAM içinde sıkıştırılmış bir takas alanı ekler; var olan takas alanına dokunmaz, ona ek gelir. Bir sonraki açılışta ya da zram servisi yeniden başlayınca etkin olur."
+
+[tweak.bluetooth]
+title = "Bluetooth"
+summary = "bluez ve araçlarını kurar, Bluetooth servisini açar."
+
+[tweak.laptop-power]
+title = "Dizüstü güç yönetimi"
+summary = "tlp'yi kurar ve kendi varsayılanlarıyla açar. power-profiles-daemon zaten çalışan bir makinede kenara çekilir."
+
+[tweak.nvidia-wayland]
+title = "NVIDIA ve Wayland"
+summary = "Wayland oturumunun düzgün çalışması için NVIDIA'nın kip ayarını (modesetting) ve uyku sonrası servislerini etkinleştirir. Bir sonraki açılışta geçerli olur; nvidia modülü initramfs içindeyse ayrıca `mkinitcpio -P` çalıştırılmalıdır."
+
 [tweak.firewall]
 title = "Güvenlik duvarı"
 summary = "ufw'yi kurar ve açar: dışarıdan gelen bağlantılar engellenir, dışarıya gidenler serbesttir. qtools hiçbir kapı açmaz; SSH gibi dışarıdan erişilmesi gereken her servis için ayrıca bir ufw allow kuralı gerekir."
@@ -65,6 +81,12 @@ summary = "SSH'de parolayla girişi ve root girişini kendi ek dosyasıyla kapat
 "other-time-service" = "Saati başka bir zaman servisi tutuyor"
 
 "no-openssh" = "openssh kurulu değil"
+
+"no-bluetooth" = "Bu makinede Bluetooth denetleyicisi yok"
+"no-battery" = "Bu makinede pil yok"
+"power-profiles-daemon" = "Güç yönetimini zaten power-profiles-daemon yapıyor"
+"no-nvidia" = "Bu makinede NVIDIA kartı yok"
+"no-nvidia-driver" = "NVIDIA sürücüsü kurulu değil"
 
 [header]
 tagline = "Arch için önerilen ayarlar"

@@ -2,6 +2,21 @@
 
 Every release of quvyta-tools, newest first. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/); while the version starts with 0, a minor release may change the command line or the files qtools keeps under `~/.local/state/quvyta-tools/`, and the notes say so when it does.
 
+## 0.1.6 - 2026-09-20
+
+### Added
+
+- The Hardware group, with four items. Compressed swap in RAM (`zram-swap`): installs `zram-generator` and writes a configuration file of its own, adding a compressed swap device half the size of the memory on top of any swap already there. Bluetooth (`bluetooth`), only on a machine that has a controller: `bluez`, its tools and the service. Laptop power management (`laptop-power`), only with a battery and only when `power-profiles-daemon` is not already managing power: `tlp` at its own defaults. NVIDIA and Wayland (`nvidia-wayland`), only with an NVIDIA card whose driver is already installed: kernel modesetting in a modprobe file of qtools' own, plus the suspend, resume and hibernate services.
+
+### Changed
+
+- Built on quvyta-framework 0.1.10.
+- The published package lists its files from the root of the repository, so a file of the same name in a subfolder can no longer slip into it.
+
+### Notes
+
+- qtools does not install a graphics driver and does not touch the bootloader or the initramfs. Which NVIDIA driver is right depends on the card and the kernel, and a wrong one can leave a machine without a display; a bootloader that will not boot cannot be undone from inside qtools.
+
 ## 0.1.5 - 2026-09-19
 
 ### Added

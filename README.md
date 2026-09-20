@@ -125,6 +125,15 @@ The interface comes in English, Turkish, German, Spanish, French, Brazilian Port
 | Firewall | `firewall` | Installs `ufw`, turns it on and enables `ufw.service`: incoming connections are blocked, outgoing ones allowed. qtools opens nothing, so SSH and any other service that must stay reachable needs its own `ufw allow` rule. |
 | SSH hardening | `ssh-hardening` | Only when `openssh` is installed: a drop-in under `/etc/ssh/sshd_config.d/` turns off password logins and root logins. It takes effect at the next sshd restart; make sure your key is already in place on a machine you reach remotely. |
 
+## The Hardware group
+
+| Item | Id | What it does |
+|---|---|---|
+| Compressed swap in RAM | `zram-swap` | Installs `zram-generator` and writes `/etc/systemd/zram-generator.conf`: a compressed swap device half the size of your memory, on top of any swap you already have. It becomes active at the next boot or the next start of the zram service. |
+| Bluetooth | `bluetooth` | Only on a machine with a Bluetooth controller: installs `bluez` and `bluez-utils` and enables `bluetooth.service`. |
+| Laptop power management | `laptop-power` | Only on a machine with a battery, and only when `power-profiles-daemon` is not already managing power: installs `tlp` and enables `tlp.service`, at tlp's own defaults. |
+| NVIDIA and Wayland | `nvidia-wayland` | Only with an NVIDIA card whose driver is already installed: writes `options nvidia_drm modeset=1` to `/etc/modprobe.d/50-quvyta-nvidia.conf` and enables the suspend, resume and hibernate services. It takes effect at the next boot; if the nvidia module is built into your initramfs, run `mkinitcpio -P` as well. qtools does not install the driver: which one is right depends on the card and the kernel, and a wrong one can leave the machine without a display. |
+
 ## The Maintenance group
 
 | Item | Id | What it does |
@@ -133,7 +142,7 @@ The interface comes in English, Turkish, German, Spanish, French, Brazilian Port
 | Journal size limit | `journal-limit` | Caps the system log at 500 MB through a drop-in under `/etc/systemd/journald.conf.d/`; takes effect at the next boot or journald restart. |
 | Time sync | `time-sync` | Enables `systemd-timesyncd.service`, unless another time service (chrony, ntp, openntpd) is installed. |
 
-The Hardware and Appearance groups are still empty.
+The Appearance group is still empty; it comes in a later release.
 
 ## From the command line
 

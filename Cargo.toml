@@ -1,6 +1,6 @@
 [package]
 name = "quvyta-tools"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2024"
 rust-version = "1.95"
 license = "MIT"
@@ -12,10 +12,10 @@ keywords = ["arch-linux", "linux", "settings", "tui", "terminal"]
 categories = ["command-line-utilities"]
 # Only what the program is built from goes into the package; the rest of the repository is for
 # working on it.
-include = ["src/**", "assets/**", "Cargo.toml", "Cargo.lock", "README.md", "CHANGELOG.md", "LICENSE"]
+include = ["/src/**", "/assets/**", "/Cargo.toml", "/Cargo.lock", "/README.md", "/CHANGELOG.md", "/LICENSE"]
 
 [dependencies]
-quvyta-framework = { version = "0.1.8", features = ["pty"] }
+quvyta-framework = { version = "0.1.10", features = ["pty"] }
 toml = "0.9"
 
 [lints.rust]

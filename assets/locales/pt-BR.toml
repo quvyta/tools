@@ -43,6 +43,22 @@ summary = "Limita quanto espaço em disco o log do sistema pode ocupar, com um a
 title = "Sincronia do relógio"
 summary = "Mantém o relógio certo com o serviço de horário que vem com o systemd."
 
+[tweak.zram-swap]
+title = "Swap comprimida na RAM"
+summary = "Adiciona um dispositivo de swap comprimida na RAM, do tamanho de metade da sua memória, além da swap que você já tiver. Vale a partir da próxima inicialização ou do próximo início do serviço do zram."
+
+[tweak.bluetooth]
+title = "Bluetooth"
+summary = "Instala o bluez e suas ferramentas e ativa o serviço de Bluetooth."
+
+[tweak.laptop-power]
+title = "Energia do notebook"
+summary = "Instala o tlp e o ativa com seus próprios valores padrão. Ele se afasta quando o power-profiles-daemon já cuida da energia."
+
+[tweak.nvidia-wayland]
+title = "NVIDIA e Wayland"
+summary = "Ativa o modesetting de kernel da NVIDIA e seus serviços de suspensão, necessários para uma sessão Wayland sem falhas. Vale a partir da próxima inicialização; se o módulo nvidia estiver embutido no seu initramfs, também é preciso rodar `mkinitcpio -P`."
+
 [tweak.firewall]
 title = "Firewall"
 summary = "Instala o ufw e o ativa: conexões de entrada são bloqueadas, as de saída são permitidas. O qtools não abre nada, então o SSH e qualquer outro serviço que precise continuar acessível precisam de uma regra ufw allow própria."
@@ -65,6 +81,12 @@ summary = "Desativa o login por senha e o login como root via SSH, em um arquivo
 "other-time-service" = "Outro serviço de horário cuida do relógio"
 
 "no-openssh" = "O openssh não está instalado"
+
+"no-bluetooth" = "Esta máquina não tem controlador Bluetooth"
+"no-battery" = "Esta máquina não tem bateria"
+"power-profiles-daemon" = "O power-profiles-daemon já cuida da energia"
+"no-nvidia" = "Esta máquina não tem placa NVIDIA"
+"no-nvidia-driver" = "O driver da NVIDIA não está instalado"
 
 [header]
 tagline = "Ajustes recomendados para Arch Linux"

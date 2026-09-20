@@ -320,6 +320,314 @@ fn the_security_group_has_its_two_tweaks() {
 }
 
 #[test]
+fn the_hardware_group_has_its_four_tweaks() {
+    let ids: Vec<&str> = in_group(Group::Hardware).iter().map(|tweak| tweak.id).collect();
+    assert_eq!(ids, ["zram-swap", "bluetooth", "laptop-power", "nvidia-wayland"]);
+}
+
+const ZRAM_CONF: &str = "/etc/systemd/zram-generator.conf";
+const ZRAM_CONTENT: &str = "[zram0]\nzram-size = min(ram / 2, 8192)\ncompression-algorithm = zstd\n";
+
+#[test]
+fn zram_swap_touches_the_package_and_its_config_file() {
+    assert_eq!(
+        hardware::zram_swap().touches(),
+        vec![Touch::Package("zram-generator".into()), Touch::File(ZRAM_CONF.into())]
+    );
+}
+
+#[test]
+fn zram_swap_fits_every_machine() {
+    assert_eq!((hardware::zram_swap().applies_to)(&mut FakeSystem::new()), Availability::Yes);
+}
+
+#[test]
+fn zram_swap_is_off_half_applied_or_changed_by_what_it_finds() {
+    let mut system = FakeSystem::new();
+    system.answer("pacman -Q zram-generator", no());
+    let tweak = hardware::zram_swap();
+    assert_eq!(tweak.state(&mut system).expect("the fake answers"), TweakState::Off);
+
+    system.answer("pacman -Q zram-generator", ok("zram-generator 1.1.2-1"));
+    assert_eq!(tweak.state(&mut system).expect("the fake answers"), TweakState::Half);
+
+    system.file(ZRAM_CONF, ZRAM_CONTENT);
+    assert_eq!(tweak.state(&mut system).expect("the fake answers"), TweakState::Applied);
+
+    system.file(ZRAM_CONF, "[zram0]\nzram-size = 4096\n");
+    assert_eq!(
+        tweak.state(&mut system).expect("the fake answers"),
+        TweakState::Changed("[zram0]\nzram-size = 4096\n".into())
+    );
+}
+
+#[test]
+fn applying_zram_swap_installs_the_package_and_writes_the_config() {
+    let mut system = FakeSystem::new();
+    system.answer("pacman -Q zram-generator", no());
+    system.answer("sudo pacman -S --needed --noconfirm zram-generator", ok(""));
+    let mut journal = crate::state::Journal::default();
+
+    hardware::zram_swap().apply(&mut system, &mut journal, std::path::Path::new("/tmp/state")).expect("it runs");
+
+    assert!(system.calls().contains(&"sudo pacman -S --needed --noconfirm zram-generator".to_owned()));
+    assert_eq!(system.read(std::path::Path::new(ZRAM_CONF)).expect("the fake reads"), Some(ZRAM_CONTENT.into()));
+}
+
+#[test]
+fn bluetooth_touches_its_two_packages_and_the_service() {
+    assert_eq!(
+        hardware::bluetooth().touches(),
+        vec![
+            Touch::Package("bluez".into()),
+            Touch::Package("bluez-utils".into()),
+            Touch::Service("bluetooth.service".into())
+        ]
+    );
+}
+
+const BLUETOOTH_CHECK: &str = "sh -c [ -n \"$(ls -A /sys/class/bluetooth 2>/dev/null)\" ]";
+
+#[test]
+fn bluetooth_fits_a_machine_with_a_controller_and_not_one_without() {
+    let mut system = FakeSystem::new();
+    system.answer(BLUETOOTH_CHECK, no());
+    assert_eq!((hardware::bluetooth().applies_to)(&mut system), Availability::No("unavailable.no-bluetooth"));
+    assert_eq!(
+        hardware::bluetooth().state(&mut system).expect("nothing else runs"),
+        TweakState::Unavailable("unavailable.no-bluetooth")
+    );
+
+    system.answer(BLUETOOTH_CHECK, ok(""));
+    assert_eq!((hardware::bluetooth().applies_to)(&mut system), Availability::Yes);
+}
+
+#[test]
+fn bluetooth_is_off_until_everything_runs_and_applied_afterwards() {
+    let mut system = FakeSystem::new();
+    system.answer(BLUETOOTH_CHECK, ok(""));
+    system.answer("pacman -Q bluez", no());
+    system.answer("pacman -Q bluez-utils", no());
+    system.answer("systemctl is-enabled bluetooth.service", no());
+    system.answer("systemctl is-active bluetooth.service", no());
+    let tweak = hardware::bluetooth();
+    assert_eq!(tweak.state(&mut system).expect("the fake answers"), TweakState::Off);
+
+    system.answer("pacman -Q bluez", ok("bluez 5.79-1"));
+    system.answer("pacman -Q bluez-utils", ok("bluez-utils 5.79-1"));
+    system.answer("systemctl is-enabled bluetooth.service", ok("enabled"));
+    system.answer("systemctl is-active bluetooth.service", ok("active"));
+    assert_eq!(tweak.state(&mut system).expect("the fake answers"), TweakState::Applied);
+}
+
+#[test]
+fn applying_bluetooth_installs_both_packages_and_enables_the_service() {
+    let mut system = FakeSystem::new();
+    system.answer(BLUETOOTH_CHECK, ok(""));
+    system.answer("pacman -Q bluez", no());
+    system.answer("pacman -Q bluez-utils", no());
+    system.answer("systemctl is-enabled bluetooth.service", no());
+    system.answer("systemctl is-active bluetooth.service", no());
+    system.answer("sudo pacman -S --needed --noconfirm bluez", ok(""));
+    system.answer("sudo pacman -S --needed --noconfirm bluez-utils", ok(""));
+    system.answer("sudo systemctl enable --now bluetooth.service", ok(""));
+    let mut journal = crate::state::Journal::default();
+
+    hardware::bluetooth().apply(&mut system, &mut journal, std::path::Path::new("/tmp/state")).expect("it runs");
+
+    let root_calls: Vec<&String> = system.calls().iter().filter(|call| call.starts_with("sudo ")).collect();
+    assert_eq!(
+        root_calls,
+        [
+            "sudo pacman -S --needed --noconfirm bluez",
+            "sudo pacman -S --needed --noconfirm bluez-utils",
+            "sudo systemctl enable --now bluetooth.service"
+        ]
+    );
+}
+
+#[test]
+fn laptop_power_touches_the_package_and_the_service() {
+    assert_eq!(
+        hardware::laptop_power().touches(),
+        vec![Touch::Package("tlp".into()), Touch::Service("tlp.service".into())]
+    );
+}
+
+const BATTERY_CHECK: &str = "sh -c [ -n \"$(ls -d /sys/class/power_supply/BAT* 2>/dev/null)\" ]";
+
+#[test]
+fn laptop_power_fits_a_battery_machine_with_no_other_power_manager() {
+    let mut system = FakeSystem::new();
+    system.answer(BATTERY_CHECK, no());
+    assert_eq!((hardware::laptop_power().applies_to)(&mut system), Availability::No("unavailable.no-battery"));
+    assert_eq!(
+        hardware::laptop_power().state(&mut system).expect("nothing else runs"),
+        TweakState::Unavailable("unavailable.no-battery")
+    );
+
+    system.answer(BATTERY_CHECK, ok(""));
+    system.answer("systemctl is-enabled power-profiles-daemon.service", ok("enabled"));
+    assert_eq!(
+        (hardware::laptop_power().applies_to)(&mut system),
+        Availability::No("unavailable.power-profiles-daemon")
+    );
+
+    system.answer("systemctl is-enabled power-profiles-daemon.service", no());
+    assert_eq!((hardware::laptop_power().applies_to)(&mut system), Availability::Yes);
+}
+
+#[test]
+fn laptop_power_is_off_until_the_package_and_service_run_and_applied_afterwards() {
+    let mut system = FakeSystem::new();
+    system.answer(BATTERY_CHECK, ok(""));
+    system.answer("systemctl is-enabled power-profiles-daemon.service", no());
+    system.answer("pacman -Q tlp", no());
+    system.answer("systemctl is-enabled tlp.service", no());
+    system.answer("systemctl is-active tlp.service", no());
+    let tweak = hardware::laptop_power();
+    assert_eq!(tweak.state(&mut system).expect("the fake answers"), TweakState::Off);
+
+    system.answer("pacman -Q tlp", ok("tlp 1.6.1-1"));
+    system.answer("systemctl is-enabled tlp.service", ok("enabled"));
+    system.answer("systemctl is-active tlp.service", ok("active"));
+    assert_eq!(tweak.state(&mut system).expect("the fake answers"), TweakState::Applied);
+}
+
+#[test]
+fn applying_laptop_power_installs_tlp_and_enables_its_service() {
+    let mut system = FakeSystem::new();
+    system.answer(BATTERY_CHECK, ok(""));
+    system.answer("systemctl is-enabled power-profiles-daemon.service", no());
+    system.answer("pacman -Q tlp", no());
+    system.answer("systemctl is-enabled tlp.service", no());
+    system.answer("systemctl is-active tlp.service", no());
+    system.answer("sudo pacman -S --needed --noconfirm tlp", ok(""));
+    system.answer("sudo systemctl enable --now tlp.service", ok(""));
+    let mut journal = crate::state::Journal::default();
+
+    hardware::laptop_power().apply(&mut system, &mut journal, std::path::Path::new("/tmp/state")).expect("it runs");
+
+    let root_calls: Vec<&String> = system.calls().iter().filter(|call| call.starts_with("sudo ")).collect();
+    assert_eq!(root_calls, ["sudo pacman -S --needed --noconfirm tlp", "sudo systemctl enable --now tlp.service"]);
+}
+
+const NVIDIA_MODPROBE: &str = "/etc/modprobe.d/50-quvyta-nvidia.conf";
+const NVIDIA_CONTENT: &str = "options nvidia_drm modeset=1\n";
+const LSPCI_CHECK: &str = "sh -c lspci | grep -Ei 'vga|3d controller' | grep -qi nvidia";
+
+#[test]
+fn nvidia_wayland_touches_its_file_and_three_services() {
+    assert_eq!(
+        hardware::nvidia_wayland().touches(),
+        vec![
+            Touch::File(NVIDIA_MODPROBE.into()),
+            Touch::Service("nvidia-suspend.service".into()),
+            Touch::Service("nvidia-resume.service".into()),
+            Touch::Service("nvidia-hibernate.service".into())
+        ]
+    );
+}
+
+#[test]
+fn nvidia_wayland_fits_only_a_card_with_its_driver_installed() {
+    let mut system = FakeSystem::new();
+    system.answer(LSPCI_CHECK, no());
+    assert_eq!((hardware::nvidia_wayland().applies_to)(&mut system), Availability::No("unavailable.no-nvidia"));
+    assert_eq!(
+        hardware::nvidia_wayland().state(&mut system).expect("nothing else runs"),
+        TweakState::Unavailable("unavailable.no-nvidia")
+    );
+
+    system.answer(LSPCI_CHECK, ok("01:00.0 VGA compatible controller: NVIDIA Corporation"));
+    for package in ["nvidia", "nvidia-open", "nvidia-lts", "nvidia-dkms", "nvidia-open-dkms"] {
+        system.answer(&format!("pacman -Q {package}"), no());
+    }
+    assert_eq!((hardware::nvidia_wayland().applies_to)(&mut system), Availability::No("unavailable.no-nvidia-driver"));
+
+    // The open kernel modules are as good a driver here as the proprietary build.
+    system.answer("pacman -Q nvidia-open", ok("nvidia-open 560.35.03-6"));
+    assert_eq!((hardware::nvidia_wayland().applies_to)(&mut system), Availability::Yes);
+    system.answer("pacman -Q nvidia-open", no());
+
+    system.answer("pacman -Q nvidia", ok("nvidia 560.35.03-6"));
+    assert_eq!((hardware::nvidia_wayland().applies_to)(&mut system), Availability::Yes);
+}
+
+#[test]
+fn nvidia_wayland_is_off_half_applied_or_changed_by_what_it_finds() {
+    let mut system = FakeSystem::new();
+    system.answer(LSPCI_CHECK, ok("01:00.0 VGA compatible controller: NVIDIA Corporation"));
+    system.answer("pacman -Q nvidia", ok("nvidia 560.35.03-6"));
+    system.answer("systemctl is-enabled nvidia-suspend.service", no());
+    system.answer("systemctl is-active nvidia-suspend.service", no());
+    system.answer("systemctl is-enabled nvidia-resume.service", no());
+    system.answer("systemctl is-active nvidia-resume.service", no());
+    system.answer("systemctl is-enabled nvidia-hibernate.service", no());
+    system.answer("systemctl is-active nvidia-hibernate.service", no());
+    let tweak = hardware::nvidia_wayland();
+    assert_eq!(tweak.state(&mut system).expect("the fake answers"), TweakState::Off);
+
+    system.file(NVIDIA_MODPROBE, NVIDIA_CONTENT);
+    assert_eq!(tweak.state(&mut system).expect("the fake answers"), TweakState::Half);
+
+    system.answer("systemctl is-enabled nvidia-suspend.service", ok("enabled"));
+    system.answer("systemctl is-active nvidia-suspend.service", ok("active"));
+    system.answer("systemctl is-enabled nvidia-resume.service", ok("enabled"));
+    system.answer("systemctl is-active nvidia-resume.service", ok("active"));
+    system.answer("systemctl is-enabled nvidia-hibernate.service", ok("enabled"));
+    system.answer("systemctl is-active nvidia-hibernate.service", ok("active"));
+    assert_eq!(tweak.state(&mut system).expect("the fake answers"), TweakState::Applied);
+
+    system.file(NVIDIA_MODPROBE, "options nvidia_drm modeset=0\n");
+    assert_eq!(
+        tweak.state(&mut system).expect("the fake answers"),
+        TweakState::Changed("options nvidia_drm modeset=0\n".into())
+    );
+}
+
+#[test]
+fn applying_nvidia_wayland_writes_the_modprobe_file_and_enables_the_three_services() {
+    let mut system = FakeSystem::new();
+    system.answer("sudo systemctl enable --now nvidia-suspend.service", ok(""));
+    system.answer("sudo systemctl enable --now nvidia-resume.service", ok(""));
+    system.answer("sudo systemctl enable --now nvidia-hibernate.service", ok(""));
+    let mut journal = crate::state::Journal::default();
+
+    hardware::nvidia_wayland().apply(&mut system, &mut journal, std::path::Path::new("/tmp/state")).expect("it runs");
+
+    assert_eq!(
+        system.read(std::path::Path::new(NVIDIA_MODPROBE)).expect("the fake reads"),
+        Some(NVIDIA_CONTENT.into())
+    );
+    let root_calls: Vec<&String> = system.calls().iter().filter(|call| call.starts_with("sudo ")).collect();
+    assert_eq!(
+        root_calls,
+        [
+            "sudo systemctl enable --now nvidia-suspend.service",
+            "sudo systemctl enable --now nvidia-resume.service",
+            "sudo systemctl enable --now nvidia-hibernate.service"
+        ]
+    );
+}
+
+#[test]
+fn every_hardware_unavailable_reason_reads_in_both_languages() {
+    let env = crate::locales::env();
+    for key in [
+        "unavailable.no-bluetooth",
+        "unavailable.no-battery",
+        "unavailable.power-profiles-daemon",
+        "unavailable.no-nvidia",
+        "unavailable.no-nvidia-driver",
+    ] {
+        for code in ["en", "tr"] {
+            assert!(env.i18n().has(code, key), "`{key}` has no text in `{code}`");
+        }
+    }
+}
+
+#[test]
 fn the_sidebar_order_and_the_catalog_order_agree() {
     let groups: Vec<Group> = all().iter().map(|tweak| tweak.group).collect();
     let mut sorted = groups.clone();

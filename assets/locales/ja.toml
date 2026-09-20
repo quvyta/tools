@@ -43,6 +43,22 @@ summary = "システムログが使えるディスク容量を専用の drop-in 
 title = "時刻同期"
 summary = "systemd 付属の時刻サービスで時計を正確に保ちます。"
 
+[tweak.zram-swap]
+title = "RAM 上の圧縮スワップ"
+summary = "メモリの半分の大きさの圧縮スワップ領域を RAM 上に追加します。既存のスワップはそのまま残り、これはその上乗せです。次回の起動か zram サービスの再起動で有効になります。"
+
+[tweak.bluetooth]
+title = "Bluetooth"
+summary = "bluez とそのツールをインストールし、Bluetooth サービスを有効にします。"
+
+[tweak.laptop-power]
+title = "ノート PC の電源管理"
+summary = "tlp をインストールし、既定の設定で有効にします。power-profiles-daemon が既に電源を管理している場合は手を出しません。"
+
+[tweak.nvidia-wayland]
+title = "NVIDIA と Wayland"
+summary = "Wayland セッションを滑らかに動かすために必要な、NVIDIA のカーネルモード設定とサスペンド用サービスを有効にします。次回の起動で有効になります。nvidia モジュールが initramfs に組み込まれている場合は、`mkinitcpio -P` も別途実行してください。"
+
 [tweak.firewall]
 title = "ファイアウォール"
 summary = "ufw をインストールして有効にします。外部からの接続は遮断し、外部への接続は許可します。qtools はポートを一切開けないため、SSH など外部から接続できる必要があるサービスには、それぞれ ufw allow ルールが必要です。"
@@ -65,6 +81,12 @@ summary = "専用の drop-in ファイルで、SSH のパスワードログイ�
 "other-time-service" = "別の時刻サービスが時計を管理しています"
 
 "no-openssh" = "openssh がインストールされていません"
+
+"no-bluetooth" = "このマシンに Bluetooth コントローラーはありません"
+"no-battery" = "このマシンにバッテリーはありません"
+"power-profiles-daemon" = "power-profiles-daemon が既に電源を管理しています"
+"no-nvidia" = "このマシンに NVIDIA のグラフィックカードはありません"
+"no-nvidia-driver" = "NVIDIA ドライバーがインストールされていません"
 
 [header]
 tagline = "Arch Linux のおすすめ設定"

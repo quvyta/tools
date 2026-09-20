@@ -2,6 +2,7 @@
 
 use crate::tweak::{Group, Tweak};
 
+pub mod hardware;
 pub mod maintenance;
 pub mod packages;
 pub mod security;
@@ -16,6 +17,10 @@ pub fn all() -> Vec<Tweak> {
         packages::cache_cleanup(),
         security::firewall(),
         security::ssh_hardening(),
+        hardware::zram_swap(),
+        hardware::bluetooth(),
+        hardware::laptop_power(),
+        hardware::nvidia_wayland(),
         maintenance::ssd_trim(),
         maintenance::journal_limit(500),
         maintenance::time_sync(),

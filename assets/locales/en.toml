@@ -43,6 +43,22 @@ summary = "Caps how much disk the system log may use, through a drop-in of its o
 title = "Time sync"
 summary = "Keeps the clock right with the time service systemd ships."
 
+[tweak.zram-swap]
+title = "Compressed swap in RAM"
+summary = "Adds a compressed swap device in RAM, sized to half your memory, on top of any swap you already have. It becomes active at the next boot or the next start of the zram service."
+
+[tweak.bluetooth]
+title = "Bluetooth"
+summary = "Installs bluez and its tools and turns the Bluetooth service on."
+
+[tweak.laptop-power]
+title = "Laptop power management"
+summary = "Installs tlp and turns it on, at its own defaults. It steps aside on a machine already managed by power-profiles-daemon."
+
+[tweak.nvidia-wayland]
+title = "NVIDIA and Wayland"
+summary = "Enables NVIDIA's kernel modesetting and its suspend hand-off services, needed for a smooth Wayland session. It takes effect at the next boot; if the nvidia module is built into your initramfs, run `mkinitcpio -P` as well."
+
 [tweak.firewall]
 title = "Firewall"
 summary = "Installs ufw and turns it on: incoming connections are blocked, outgoing ones are allowed. qtools opens nothing, so SSH and any other service that must stay reachable needs its own ufw allow rule."
@@ -65,6 +81,12 @@ summary = "Turns off password and root logins over SSH in a drop-in of its own. 
 "other-time-service" = "Another time service keeps the clock"
 
 "no-openssh" = "openssh is not installed"
+
+"no-bluetooth" = "No Bluetooth controller on this machine"
+"no-battery" = "No battery on this machine"
+"power-profiles-daemon" = "power-profiles-daemon already manages power"
+"no-nvidia" = "No NVIDIA card on this machine"
+"no-nvidia-driver" = "The NVIDIA driver is not installed"
 
 [header]
 tagline = "Recommended Arch Linux settings"

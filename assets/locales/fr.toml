@@ -43,6 +43,22 @@ summary = "Limite la place que le journal système peut occuper sur le disque, v
 title = "Synchro de l’heure"
 summary = "Garde l’horloge à l’heure grâce au service de temps fourni avec systemd."
 
+[tweak.zram-swap]
+title = "Swap compressé en RAM"
+summary = "Ajoute un espace de swap compressé en RAM, de la moitié de votre mémoire, en plus du swap déjà présent. Prend effet au prochain démarrage ou au prochain lancement du service zram."
+
+[tweak.bluetooth]
+title = "Bluetooth"
+summary = "Installe bluez et ses outils, et active le service Bluetooth."
+
+[tweak.laptop-power]
+title = "Énergie du portable"
+summary = "Installe tlp et l’active avec ses réglages par défaut. S’écarte si power-profiles-daemon gère déjà l’énergie."
+
+[tweak.nvidia-wayland]
+title = "NVIDIA et Wayland"
+summary = "Active le modesetting noyau de NVIDIA et ses services de suspension, nécessaires pour une session Wayland sans accroc. Prend effet au prochain démarrage ; si le module nvidia est intégré à votre initramfs, il faut aussi lancer `mkinitcpio -P`."
+
 [tweak.firewall]
 title = "Pare-feu"
 summary = "Installe ufw et l’active : les connexions entrantes sont bloquées, les sortantes autorisées. qtools n’ouvre rien ; SSH et tout autre service qui doit rester joignable a donc besoin de sa propre règle ufw allow."
@@ -65,6 +81,12 @@ summary = "Désactive les connexions SSH par mot de passe et en root, dans un fi
 "other-time-service" = "Un autre service de temps gère l’horloge"
 
 "no-openssh" = "openssh n’est pas installé"
+
+"no-bluetooth" = "Aucun contrôleur Bluetooth sur cette machine"
+"no-battery" = "Aucune batterie sur cette machine"
+"power-profiles-daemon" = "power-profiles-daemon gère déjà l’énergie"
+"no-nvidia" = "Aucune carte NVIDIA sur cette machine"
+"no-nvidia-driver" = "Le pilote NVIDIA n’est pas installé"
 
 [header]
 tagline = "Réglages recommandés pour Arch Linux"
