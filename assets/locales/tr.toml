@@ -139,7 +139,7 @@ done = "Tamamlandı"
 failed = "Başarısız oldu"
 "failed-body" = "Nedeni çıktıda yazıyor. Hatadan önce yapılanlar yine de geri alınabilir."
 
-# Ayarlar sayfası: ailenin görünüm satırları ve güncelleme bildirimi.
+# Ayarlar sayfası: Quvyta'nın ortak görünüm satırları ve güncelleme bildirimi.
 [settings]
 title = "Ayarlar"
 "not-saved" = "Ayar kaydedilemedi, eski değerine döndü"

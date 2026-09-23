@@ -4,8 +4,8 @@
 //! It opens while qtools has no `tools.conf`, and only then. The framework owns the appearance
 //! step, the buttons and the two files; nothing at all is written until Finish, so a qtools
 //! closed half-way leaves the settings folder exactly as it was and the wizard comes again next
-//! start. qtools has no settings of its own beyond the family's look, so its step asks one thing
-//! only: whether the family says when an update is out, a switch it shares with every Quvyta
+//! start. qtools has no settings of its own beyond the shared Quvyta look, so its step asks one thing
+//! only: whether to say when an update is out, a switch qtools shares with every Quvyta
 //! application and which the Settings page offers again afterwards.
 
 use qframe::prelude::*;
@@ -42,7 +42,7 @@ impl Tools {
     /// add, so the list takes the screen and the keys, and the Settings page starts from the
     /// wizard's choices; the look chosen is in force already, since
     /// the wizard applied each choice as it was made. The update box is written now, to the
-    /// family's switch, and the question held back while the wizard was open follows it.
+    /// Quvyta-wide switch, and the question held back while the wizard was open follows it.
     pub(super) fn finish_setup(&mut self) -> Command<Msg> {
         // The Settings page carries on from what the wizard chose: its appearance held those
         // choices without writing them, and the update box is qtools' own already.
@@ -131,7 +131,7 @@ impl Tools {
     }
 }
 
-/// What the update box asks and what it never sends, in the family's own words.
+/// What the update box asks and what it never sends, in the Quvyta ecosystem's own words.
 fn update_text() -> String {
     t!("quvyta.appearance.updates-text", family = Family::QUVYTA.title())
 }

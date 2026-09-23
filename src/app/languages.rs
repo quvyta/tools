@@ -185,7 +185,7 @@ fn the_unsupported_notice_reads_in_every_language() {
 }
 
 /// The wizard of a first start in `code`, on a screen of `width` by `height`: built by
-/// [`Opening::new`] over an empty temporary family folder, as a first start is.
+/// [`Opening::new`] over an empty temporary Quvyta folder, as a first start is.
 fn wizard(root: &std::path::Path, code: &str, width: u16, height: u16) -> Harness<Tools> {
     let states = vec![TweakState::Off; catalog::all().len()];
     let folders = UpdateFolders { config: root.join("config"), state: root.join("state") };
@@ -269,12 +269,12 @@ fn the_wizard_reads_in_full_in_every_language_and_width() {
 }
 
 /// qtools set up before in `code`, on a screen of `width` by `height`, with the Settings page
-/// open: built by [`Opening::new`] over a temporary family folder whose files say `code`.
+/// open: built by [`Opening::new`] over a temporary Quvyta folder whose files say `code`.
 fn settings_page(root: &std::path::Path, code: &str, width: u16, height: u16) -> Harness<Tools> {
     let config = root.join("config");
     std::fs::create_dir_all(&config).expect("folder");
     std::fs::write(config.join("quvyta.conf"), format!("language = \"{code}\"\ntheme = \"monochrome\"\n"))
-        .expect("family file");
+        .expect("shared file");
     std::fs::write(config.join("tools.conf"), "language = \"quvyta\"\ntheme = \"quvyta\"\nicons = \"quvyta\"\n")
         .expect("own file");
     let states = vec![TweakState::Off; catalog::all().len()];

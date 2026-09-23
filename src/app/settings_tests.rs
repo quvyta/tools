@@ -1,7 +1,7 @@
-//! The Settings page: the family's appearance rows and its update notice, reached from the
+//! The Settings page: the shared Quvyta appearance rows and its update notice, reached from the
 //! sidebar and from the narrow strip, each change in force at once and written where its box says.
 //!
-//! Every test lives in a temporary root: the family's folder, qtools' state folder and the fonts
+//! Every test lives in a temporary root: the shared Quvyta folder, qtools' state folder and the fonts
 //! the wizard looks at are all inside it, and the harness answers the update question itself, so
 //! nothing reaches the network or the person's own files. The screen is built by
 //! [`Opening::new`], the way [`crate::run_on`] builds it.
@@ -31,17 +31,17 @@ fn folders(root: &Path) -> UpdateFolders {
     UpdateFolders { config: root.join("config"), state: root.join("state") }
 }
 
-/// qtools set up before, in a family whose language is `language`: no wizard, and every shared
-/// key of `tools.conf` follows the family.
+/// qtools set up before, with a shared Quvyta language of `language`: no wizard, and every shared
+/// key of `tools.conf` follows the shared file.
 fn set_up_in(root: &Path, language: &str) {
     fs::create_dir_all(root.join("config")).expect("folder");
-    let family = format!("language = \"{language}\"\ntheme = \"monochrome\"\nicons = \"unicode\"\n");
-    fs::write(root.join("config/quvyta.conf"), family).expect("family file");
+    let shared_look = format!("language = \"{language}\"\ntheme = \"monochrome\"\nicons = \"unicode\"\n");
+    fs::write(root.join("config/quvyta.conf"), shared_look).expect("shared file");
     fs::write(root.join("config/tools.conf"), "language = \"quvyta\"\ntheme = \"quvyta\"\nicons = \"quvyta\"\n")
         .expect("own file");
 }
 
-/// qtools over the family of `root`, on a screen of `width` by `height`, started the way the
+/// qtools over the Quvyta folder of `root`, on a screen of `width` by `height`, started the way the
 /// runtime starts it: the language and theme [`Opening::new`] resolved are those of the first
 /// frame.
 fn start(root: &Path, width: u16, height: u16) -> Harness<Tools> {
@@ -161,7 +161,7 @@ fn settings_is_the_last_tab_of_the_narrow_strip() {
 }
 
 #[test]
-fn a_theme_chosen_for_the_family_is_in_force_at_once_and_written_to_the_familys_file() {
+fn a_theme_chosen_for_every_quvyta_app_is_in_force_at_once_and_written_to_the_shared_file() {
     let root = Root::new();
     let mut h = english(root.path());
     h.click_text("Settings");
@@ -170,10 +170,10 @@ fn a_theme_chosen_for_the_family_is_in_force_at_once_and_written_to_the_familys_
     h.advance(MOMENT);
     assert_eq!(h.env().theme().id(), "nordic", "qtools draws in it at once");
     let shared = read(root.path(), "quvyta.conf");
-    assert!(shared.contains("theme = \"nordic\""), "the box is checked, so the family takes it:\n{shared}");
+    assert!(shared.contains("theme = \"nordic\""), "the box is checked, so the shared file takes it:\n{shared}");
     assert!(shared.contains("language = \"en\""), "the other shared keys stay:\n{shared}");
     let own = read(root.path(), "tools.conf");
-    assert!(own.contains("theme = \"quvyta\""), "qtools keeps following the family:\n{own}");
+    assert!(own.contains("theme = \"quvyta\""), "qtools keeps following the shared file:\n{own}");
     assert!(!own.contains("nordic"), "{own}");
 }
 
@@ -196,7 +196,7 @@ fn a_language_kept_to_qtools_is_in_force_at_once_and_written_to_its_own_file() {
     let own = read(root.path(), "tools.conf");
     assert!(own.contains(&format!("language = \"{code}\"")), "only qtools takes it:\n{own}");
     let shared = read(root.path(), "quvyta.conf");
-    assert!(shared.contains("language = \"en\""), "the family keeps its language:\n{shared}");
+    assert!(shared.contains("language = \"en\""), "the shared file keeps its language:\n{shared}");
 
     // The next start speaks it too.
     let again = start(root.path(), 100, 40);
@@ -204,7 +204,7 @@ fn a_language_kept_to_qtools_is_in_force_at_once_and_written_to_its_own_file() {
 }
 
 #[test]
-fn the_update_notice_row_turns_the_familys_switch_off_and_on_again() {
+fn the_update_notice_row_turns_the_quvyta_wide_switch_off_and_on_again() {
     let root = Root::new();
     let mut h = english(root.path());
     assert_eq!(h.update_checks().len(), 1, "on, it asks at start");
@@ -213,9 +213,9 @@ fn the_update_notice_row_turns_the_familys_switch_off_and_on_again() {
     h.click_text(NOTICE);
     h.press("space");
     h.advance(MOMENT);
-    assert!(!Family::QUVYTA.update_notice_in(&config), "the family's file says off");
+    assert!(!Family::QUVYTA.update_notice_in(&config), "the shared file says off");
     assert!(read(root.path(), "quvyta.conf").contains("update-notice = false"));
-    assert!(!read(root.path(), "tools.conf").contains("update-notice"), "the switch is the family's");
+    assert!(!read(root.path(), "tools.conf").contains("update-notice"), "the switch is Quvyta-wide");
     let next = start(root.path(), 100, 40);
     assert!(next.update_checks().is_empty(), "the next start asks nothing");
 
@@ -262,7 +262,7 @@ fn a_notice_switch_that_cannot_be_written_goes_back_on() {
     let screen = h.screen();
     fs::set_permissions(&config, fs::Permissions::from_mode(0o755)).expect("writable again");
     assert!(screen.contains("could not be saved"), "{screen}");
-    assert!(Family::QUVYTA.update_notice_in(&config), "the family's file still says on");
+    assert!(Family::QUVYTA.update_notice_in(&config), "the shared file still says on");
     // Put back on, the next press turns it off rather than on again.
     h.press("space");
     h.advance(MOMENT);
@@ -299,7 +299,7 @@ fn after_the_wizard_the_page_carries_on_from_what_it_chose() {
         root.path().join("config/quvyta.conf"),
         "language = \"en\"\ntheme = \"monochrome\"\nicons = \"unicode\"\n",
     )
-    .expect("family file");
+    .expect("shared file");
     let mut h = start(root.path(), 100, 40);
     assert!(h.app().setting_up());
     h.click_text("Next");

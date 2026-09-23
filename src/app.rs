@@ -48,7 +48,7 @@ pub mod wizard;
 mod settings;
 use settings::SETTINGS;
 
-/// qtools' name in the family: its settings file is `tools.conf` in the family's folder.
+/// qtools' name among the Quvyta apps: its settings file is `tools.conf` in the shared Quvyta folder.
 pub const APP: &str = "tools";
 
 /// Reads where every tweak stands, on this machine.
@@ -93,20 +93,20 @@ pub struct Tools {
     /// The first-run wizard, while qtools has no `tools.conf`; `None` once it is finished or
     /// when it was never needed.
     setup: Option<Setup<Msg>>,
-    /// `tools.conf` as held in memory: the family's shared keys, which the wizard writes as it
+    /// `tools.conf` as held in memory: the shared Quvyta keys, which the wizard writes as it
     /// finishes, and the appearance rows qtools keeps for itself.
     settings: Settings,
     /// The Settings page's appearance rows, which apply and write each change themselves.
     appearance: Appearance,
-    /// The family's folder the Settings page writes into; `None` keeps a change until qtools
+    /// The shared Quvyta folder the Settings page writes into; `None` keeps a change until qtools
     /// quits, for a machine without one.
     config: Option<PathBuf>,
     /// Where the backups a revert restores from are kept, as the wizard names it.
     backups: String,
-    /// Where the family's update notice is kept and where the last question is remembered;
+    /// Where the Quvyta-wide update notice is kept and where the last question is remembered;
     /// `None` asks nothing and leaves the wizard's box out, since it would change nothing.
     updates: Option<UpdateFolders>,
-    /// The "Say when an update is out" switch, as the family left it. The wizard's box writes it
+    /// The "Say when an update is out" switch, as it was last left. The wizard's box writes it
     /// only when the wizard finishes; the Settings page writes it as it is turned.
     update_notice: bool,
     /// A newer version that was found while a run was on screen, said once the run is closed.
@@ -126,12 +126,12 @@ impl Tools {
     /// The screen, opened on the packages group, showing the states it was handed. Runs start
     /// this very binary and read the real machine afterwards.
     ///
-    /// It knows no family folder: the Settings page starts from the look this machine detects and
-    /// keeps a change until qtools quits. [`Opening::new`] gives it the family's.
+    /// It knows no Quvyta folder: the Settings page starts from the look this machine detects and
+    /// keeps a change until qtools quits. [`Opening::new`] gives it the shared Quvyta one.
     pub fn new(states: Vec<TweakState>) -> Self {
         let count = states.len();
         // A folder that is never created, so resolving reads no one's files and writes nothing.
-        let nowhere = std::env::temp_dir().join("quvyta-tools-no-family");
+        let nowhere = std::env::temp_dir().join("quvyta-tools-no-config");
         let detected = Family::QUVYTA.preferences_without_saving_in(&nowhere, APP, &crate::locales::i18n());
         Self {
             group: Group::Packages,
@@ -158,7 +158,7 @@ impl Tools {
         }
     }
 
-    /// The same screen, asking at start whether a newer qtools is out, with the family's switch
+    /// The same screen, asking at start whether a newer qtools is out, with the Quvyta-wide switch
     /// in `folders.config` and the time of the last question in `folders.state`. Tests give
     /// folders of their own, so nothing they do reads or turns off the person's own switch.
     #[must_use]
@@ -177,9 +177,9 @@ impl Tools {
         self
     }
 
-    /// The question for a newer version of qtools, when the family's update notice is on.
+    /// The question for a newer version of qtools, when the Quvyta-wide update notice is on.
     ///
-    /// The switch is read here, not only where the question is sent: a family that turned it off
+    /// The switch is read here, not only where the question is sent: a machine where it is off
     /// asks nothing at all, whoever runs the question.
     fn ask_for_update(&self) -> Command<Msg> {
         let Some(folders) = &self.updates else { return Command::none() };
@@ -192,8 +192,8 @@ impl Tools {
         Command::check_for_update(check)
     }
 
-    /// Writes the wizard's box to the family's switch, off the drawing thread, when it differs
-    /// from what the family's file says; otherwise asks at once. Only called as the wizard
+    /// Writes the wizard's box to the Quvyta-wide switch, off the drawing thread, when it differs
+    /// from what the shared file says; otherwise asks at once. Only called as the wizard
     /// finishes, so nothing is written before Finish.
     fn store_update_notice(&self) -> Command<Msg> {
         let Some(folders) = &self.updates else { return Command::none() };
@@ -215,22 +215,22 @@ impl Tools {
 }
 
 /// What the screen starts with: qtools itself, with the wizard when it is wanted, its settings
-/// file and the family's look the runtime opens in.
+/// file and the shared Quvyta look the runtime opens in.
 #[derive(Debug)]
 pub struct Opening {
     /// The screen, holding the wizard on a first start.
     pub tools: Tools,
     /// `tools.conf`, for the runtime's saved look.
     pub settings: Settings,
-    /// The family's language, theme and icons, in force from the first frame.
+    /// The shared Quvyta language, theme and icons, in force from the first frame.
     pub preferences: Preferences,
 }
 
 impl Opening {
-    /// Builds the screen for a machine whose family folder is `folder` (the platform's own, or a
+    /// Builds the screen for a machine whose Quvyta folder is `folder` (the platform's own, or a
     /// test's) with the tweaks standing as `states`. `fonts`, when given, is the only folder the
     /// wizard looks in for a Nerd Font and the one it would install into, without registering
-    /// it; tests give one so no real font is looked at. Without a family folder there is nowhere
+    /// it; tests give one so no real font is looked at. Without a Quvyta folder there is nowhere
     /// to write what the wizard asks, so it does not open.
     ///
     /// Nothing is written here while the wizard is wanted: its preferences are resolved without
@@ -278,17 +278,17 @@ impl Opening {
     }
 }
 
-/// Where the family's update notice is kept and where qtools remembers when it last asked for a
+/// Where the Quvyta-wide update notice is kept and where qtools remembers when it last asked for a
 /// newer version of itself.
 ///
-/// The switch is the family's, one for every Quvyta application, so it is read from the family's
-/// folder. The last question is remembered in the family's state folder for qtools, which is not
+/// The switch is Quvyta-wide, one for every Quvyta application, so it is read from the shared
+/// Quvyta folder. The last question is remembered in the Quvyta state folder for qtools, which is not
 /// the folder qtools keeps its backups in: those stay where they have always been.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UpdateFolders {
-    /// The family's configuration folder, whose shared file holds the switch.
+    /// The shared Quvyta configuration folder, whose shared file holds the switch.
     pub config: PathBuf,
-    /// qtools' state folder in the family, which remembers when the question was last asked.
+    /// qtools' state folder under the Quvyta one, which remembers when the question was last asked.
     pub state: PathBuf,
 }
 
@@ -351,7 +351,7 @@ pub enum Msg {
     /// The "Say when an update is out" box of the wizard, or switch of the Settings page, was
     /// turned.
     ToggleUpdateNotice(bool),
-    /// The family's update notice was written as the wizard asked, or it could not be.
+    /// The Quvyta-wide update notice was written as the wizard asked, or it could not be.
     NoticeStored(Result<(), String>),
     /// A newer version of qtools is out.
     NewVersion(Update),
@@ -361,7 +361,7 @@ pub enum Msg {
     NoticeSaved {
         /// What it was turned to.
         on: bool,
-        /// The family's folder it was written into.
+        /// The shared Quvyta folder it was written into.
         folder: PathBuf,
         /// Nothing, or the reason the file could not be written.
         result: Result<(), String>,

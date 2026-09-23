@@ -139,7 +139,7 @@ done = "Hecho"
 failed = "Ha fallado"
 "failed-body" = "La salida explica el motivo. Lo que se hizo antes del fallo todavía se puede deshacer."
 
-# The Settings page: the family's appearance rows and its update notice.
+# The Settings page: the shared Quvyta appearance rows and its update notice.
 [settings]
 title = "Ajustes"
 "not-saved" = "No se pudo guardar el ajuste, así que se restauró"

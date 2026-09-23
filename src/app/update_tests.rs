@@ -1,8 +1,8 @@
-//! The family's update notice: qtools asks once at start whether a newer version is out, says so
-//! with the family's notice, asks nothing while the switch is off or the first-run wizard is open,
+//! The Quvyta-wide update notice: qtools asks once at start whether a newer version is out, says so
+//! with the shared Quvyta notice, asks nothing while the switch is off or the first-run wizard is open,
 //! and the wizard's box is where the switch is turned off.
 //!
-//! Every test lives in a temporary root: the family's folder, qtools' state folder and the fonts
+//! Every test lives in a temporary root: the shared Quvyta folder, qtools' state folder and the fonts
 //! the wizard looks at are all inside it, and the harness answers the question itself, so nothing
 //! reaches the network or the person's own files.
 
@@ -30,22 +30,22 @@ fn folders(root: &Path) -> UpdateFolders {
     UpdateFolders { config: root.join("config"), state: root.join("state") }
 }
 
-/// A family whose look is already English, so the screen can be read in English whatever the
+/// A shared Quvyta look that is already English, so the screen can be read in English whatever the
 /// machine's own language is.
-fn family_in_english(root: &Path) {
+fn shared_look_in_english(root: &Path) {
     fs::create_dir_all(root.join("config")).expect("folder");
     fs::write(root.join("config/quvyta.conf"), "language = \"en\"\ntheme = \"monochrome\"\nicons = \"unicode\"\n")
-        .expect("family file");
+        .expect("shared file");
 }
 
 /// qtools has been set up before: no wizard.
 fn set_up_before(root: &Path) {
-    family_in_english(root);
+    shared_look_in_english(root);
     fs::write(root.join("config/tools.conf"), "language = \"quvyta\"\ntheme = \"quvyta\"\nicons = \"quvyta\"\n")
         .expect("own file");
 }
 
-/// qtools over the family of `root`, built the way [`crate::run_on`] builds it.
+/// qtools over the Quvyta folder of `root`, built the way [`crate::run_on`] builds it.
 fn start(root: &Path) -> Harness<Tools> {
     let states = vec![TweakState::Off; catalog::all().len()];
     let opening =
@@ -60,7 +60,7 @@ fn said_out(h: &Harness<Tools>) -> bool {
 }
 
 #[test]
-fn a_newer_version_is_said_in_the_familys_notice_and_the_same_or_an_older_one_is_not() {
+fn a_newer_version_is_said_in_the_shared_quvyta_notice_and_the_same_or_an_older_one_is_not() {
     let root = Root::new();
     set_up_before(root.path());
     let mut h = start(root.path());
@@ -82,7 +82,7 @@ fn a_newer_version_is_said_in_the_familys_notice_and_the_same_or_an_older_one_is
 }
 
 #[test]
-fn with_the_familys_switch_off_nothing_is_asked() {
+fn with_the_quvyta_wide_switch_off_nothing_is_asked() {
     let root = Root::new();
     set_up_before(root.path());
     Family::QUVYTA.set_update_notice_in(&root.path().join("config"), false).expect("saved");
@@ -111,7 +111,7 @@ fn the_unsupported_notice_asks_nothing() {
 #[test]
 fn nothing_is_asked_while_the_wizard_is_open_and_once_after_finish() {
     let root = Root::new();
-    family_in_english(root.path());
+    shared_look_in_english(root.path());
     let mut h = start(root.path());
     assert!(h.app().setting_up(), "{}", h.screen());
     assert!(h.update_checks().is_empty(), "the wizard is not interrupted by the question");
@@ -129,7 +129,7 @@ fn nothing_is_asked_while_the_wizard_is_open_and_once_after_finish() {
 #[test]
 fn start_with_the_defaults_asks_once_it_is_over() {
     let root = Root::new();
-    family_in_english(root.path());
+    shared_look_in_english(root.path());
     let mut h = start(root.path());
     h.click_text("Start with the defaults");
     h.render();
@@ -138,15 +138,15 @@ fn start_with_the_defaults_asks_once_it_is_over() {
 }
 
 #[test]
-fn unchecking_the_box_turns_the_switch_off_for_the_family_on_finish_and_asks_nothing() {
+fn unchecking_the_box_turns_the_quvyta_wide_switch_off_on_finish_and_asks_nothing() {
     let root = Root::new();
-    family_in_english(root.path());
-    let before = fs::read_to_string(root.path().join("config/quvyta.conf")).expect("family file");
+    shared_look_in_english(root.path());
+    let before = fs::read_to_string(root.path().join("config/quvyta.conf")).expect("shared file");
     let mut h = start(root.path());
     h.click_text("Next");
     h.click_text(BOX);
     assert_eq!(
-        fs::read_to_string(root.path().join("config/quvyta.conf")).expect("family file"),
+        fs::read_to_string(root.path().join("config/quvyta.conf")).expect("shared file"),
         before,
         "nothing is written before Finish"
     );
@@ -156,8 +156,8 @@ fn unchecking_the_box_turns_the_switch_off_for_the_family_on_finish_and_asks_not
     h.advance(MOMENT);
     assert!(!h.app().setting_up(), "{}", h.screen());
     let config = root.path().join("config");
-    assert!(!Family::QUVYTA.update_notice_in(&config), "the family's file says off");
-    let shared = fs::read_to_string(config.join("quvyta.conf")).expect("family file");
+    assert!(!Family::QUVYTA.update_notice_in(&config), "the shared file says off");
+    let shared = fs::read_to_string(config.join("quvyta.conf")).expect("shared file");
     assert!(shared.contains("update-notice = false"), "{shared}");
     assert!(h.update_checks().is_empty(), "the person said no: nothing is asked");
     h.set_latest_version(Some("9.9.9")).advance(MOMENT);
@@ -171,7 +171,7 @@ fn unchecking_the_box_turns_the_switch_off_for_the_family_on_finish_and_asks_not
 #[test]
 fn leaving_the_box_on_keeps_the_switch_on() {
     let root = Root::new();
-    family_in_english(root.path());
+    shared_look_in_english(root.path());
     let mut h = start(root.path());
     h.click_text("Next");
     h.click_text("Finish");
@@ -179,16 +179,16 @@ fn leaving_the_box_on_keeps_the_switch_on() {
     h.advance(MOMENT);
     let config = root.path().join("config");
     assert!(Family::QUVYTA.update_notice_in(&config));
-    let shared = fs::read_to_string(config.join("quvyta.conf")).expect("family file");
+    let shared = fs::read_to_string(config.join("quvyta.conf")).expect("shared file");
     assert!(!shared.contains("update-notice = false"), "{shared}");
     assert_eq!(h.update_checks().len(), 1);
 }
 
 #[test]
-fn the_box_starts_as_the_family_left_the_switch() {
-    // Another member turned it off; the wizard shows it off, and finishing untouched keeps it so.
+fn the_box_starts_as_the_quvyta_wide_switch_was_left() {
+    // Another Quvyta app turned it off; the wizard shows it off, and finishing untouched keeps it so.
     let root = Root::new();
-    family_in_english(root.path());
+    shared_look_in_english(root.path());
     let config = root.path().join("config");
     Family::QUVYTA.set_update_notice_in(&config, false).expect("saved");
     let mut h = start(root.path());
@@ -199,9 +199,9 @@ fn the_box_starts_as_the_family_left_the_switch() {
     assert!(!Family::QUVYTA.update_notice_in(&config));
     assert!(h.update_checks().is_empty());
 
-    // Checked by hand, it turns the switch back on for the family, and the question follows.
+    // Checked by hand, it turns the Quvyta-wide switch back on, and the question follows.
     let root = Root::new();
-    family_in_english(root.path());
+    shared_look_in_english(root.path());
     let config = root.path().join("config");
     Family::QUVYTA.set_update_notice_in(&config, false).expect("saved");
     let mut h = start(root.path());

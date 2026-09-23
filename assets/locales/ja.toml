@@ -139,7 +139,7 @@ done = "完了"
 failed = "失敗しました"
 "failed-body" = "原因は出力に表示されています。失敗より前に行われた変更は元に戻せます。"
 
-# The Settings page: the family's appearance rows and its update notice.
+# The Settings page: the shared Quvyta appearance rows and its update notice.
 [settings]
 title = "設定"
 "not-saved" = "設定を保存できなかったため、元に戻しました"

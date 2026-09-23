@@ -139,7 +139,7 @@ done = "完成"
 failed = "失败了"
 "failed-body" = "原因见输出。失败前已完成的部分仍可撤销。"
 
-# The Settings page: the family's appearance rows and its update notice.
+# The Settings page: the shared Quvyta appearance rows and its update notice.
 [settings]
 title = "设置"
 "not-saved" = "设置未能保存，已还原"

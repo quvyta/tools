@@ -30,7 +30,7 @@ pub fn env() -> Env {
     Env::load(&dirs).expect("the compiled-in locales are readable")
 }
 
-/// The languages qtools speaks, for resolving the family's language before the runtime has
+/// The languages qtools speaks, for resolving the shared Quvyta language before the runtime has
 /// loaded them: a language this list lacks is never chosen for it.
 pub fn i18n() -> I18n {
     let mut i18n = I18n::builtin();

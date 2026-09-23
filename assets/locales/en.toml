@@ -139,7 +139,7 @@ done = "Done"
 failed = "It failed"
 "failed-body" = "The output says why. What was done before the failure can still be undone."
 
-# The Settings page: the family's appearance rows and its update notice.
+# The Settings page: the shared Quvyta appearance rows and its update notice.
 [settings]
 title = "Settings"
 "not-saved" = "The setting could not be saved, so it was put back"

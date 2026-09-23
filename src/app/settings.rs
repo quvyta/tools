@@ -1,15 +1,15 @@
 //! The Settings page: the appearance rows every Quvyta application shows the same way, language,
 //! theme and icons each with its "In every Quvyta application" box, then reduced motion and the
-//! pillar, and the family's update notice.
+//! pillar, and the Quvyta-wide update notice.
 //!
 //! It is the last entry of the sidebar, apart from the groups of tweaks, and the last tab of the
 //! narrow strip; choosing it gives the page the place of the list and its detail. The tweak keys
 //! do nothing while it is shown, since no tweak is on screen for them to act on.
 //!
 //! There is no Save button. A change on the appearance rows is in force at once and written by
-//! the framework's `Appearance`, the way every Quvyta application writes it: into the family's
+//! the framework's `Appearance`, the way every Quvyta application writes it: into the shared
 //! file while its box is checked and into `tools.conf` while it is not, with the framework's note
-//! under the row when the file cannot be written. The update notice is the family's one switch,
+//! under the row when the file cannot be written. The update notice is the one Quvyta-wide switch,
 //! written in the background; when it cannot be written it goes back and a notice says where and
 //! why.
 
@@ -37,7 +37,7 @@ const SECTION: u16 = 76;
 /// when the page is longer than the screen.
 const SCROLLBAR: u16 = 2;
 
-/// The page's appearance rows over `preferences`, writing each change into the family's folder
+/// The page's appearance rows over `preferences`, writing each change into the shared Quvyta folder
 /// `folder`. Without a folder there is nowhere to keep a change: it lasts until qtools quits.
 pub(super) fn appearance(preferences: Preferences, folder: Option<&Path>) -> Appearance {
     let appearance = Appearance::new(Family::QUVYTA, APP, preferences);
@@ -49,7 +49,7 @@ pub(super) fn appearance(preferences: Preferences, folder: Option<&Path>) -> App
 
 impl Tools {
     /// The update switch was turned: on the wizard's page it waits for Finish; on the Settings
-    /// page it is written at once, off the drawing thread, into the family's folder.
+    /// page it is written at once, off the drawing thread, into the shared Quvyta folder.
     pub(super) fn toggle_update_notice(&mut self, on: bool) -> Command<Msg> {
         self.update_notice = on;
         if self.setting_up() {
@@ -77,7 +77,7 @@ impl Tools {
     /// The page itself, in the place of the list and its detail.
     pub(super) fn settings_page(&self, ui: &mut View<'_, Msg>) {
         // The appearance rows are the framework's, the same in every Quvyta application. qtools
-        // asks crates.io at start, so the family's update switch follows them; without the
+        // asks crates.io at start, so the Quvyta-wide update switch follows them; without the
         // folders that keep it nothing is asked, and a switch there would change nothing.
         let page = |ui: &mut View<'_, Msg>| {
             ui.column(|ui| {

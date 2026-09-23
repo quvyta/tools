@@ -2,6 +2,13 @@
 
 Every release of quvyta-tools, newest first. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/); while the version starts with 0, a minor release may change the command line or the files qtools keeps under `~/.local/state/quvyta-tools/`, and the notes say so when it does.
 
+## 0.1.10 - 2026-09-23
+
+### Changed
+
+- The README and the documentation speak of the Quvyta ecosystem rather than a family of applications; the switch for the update notice is described as Quvyta-wide. Nothing on screen or in the files qtools keeps changes.
+- Built on quvyta-framework 0.1.19.
+
 ## 0.1.9 - 2026-09-23
 
 ### Added

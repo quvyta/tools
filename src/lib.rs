@@ -76,9 +76,9 @@ pub fn run_on(args: impl IntoIterator<Item = String>, os_release: Option<&str>) 
     let states =
         catalog::all().iter().map(|tweak| tweak.state(&mut system).unwrap_or(tweak::TweakState::Off)).collect();
 
-    // The family's folder decides whether the wizard opens and where it writes; the look it
-    // resolves is in force from the first frame. The same folder holds the family's update
-    // notice, and the family's state folder for qtools remembers when it last asked.
+    // The shared Quvyta folder decides whether the wizard opens and where it writes; the look it
+    // resolves is in force from the first frame. The same folder holds the Quvyta-wide
+    // update notice, and the Quvyta state folder for qtools remembers when it last asked.
     let folder = Family::QUVYTA.config_dir();
     let opening = app::Opening::new(folder.as_deref(), None, states).with_updates(app::UpdateFolders::here());
     locales::LOCALES
