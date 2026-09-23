@@ -7,6 +7,9 @@
 //! list, and `esc` closes it. At the fold and above the three columns sit side by side, and the
 //! detail panel can be closed by hand to give the list the full width.
 //!
+//! The last entry of the sidebar, and the last tab of the strip, is the Settings page, which takes
+//! the place of the list and its detail while it is shown.
+//!
 //! While a run is under way the columns give way to the embedded terminal that carries it out,
 //! and come back when the person closes it. On the first start the first-run wizard
 //! ([`crate::app::wizard`]) has the whole screen instead, until it is finished.
@@ -15,10 +18,11 @@ use std::path::{Path, PathBuf};
 
 use qframe::icons::nerd_font::Install;
 use qframe::prelude::*;
+use qframe::runtime::{Update, UpdateCheck};
 use qframe::storage::{Family, Preferences, Settings};
 use qframe::widgets::{
-    Badge, Button, Closed, List, ListItem, Menu, MenuGroup, MenuItem, ScrollView, Setup, SetupMsg, Side, SidePanel,
-    Tabs, Terminal, TerminalEvent, Toast, ToastKind,
+    Appearance, AppearanceChange, Badge, Button, Closed, List, ListItem, Menu, MenuGroup, MenuItem, ScrollView, Setup,
+    SetupMsg, Side, SidePanel, Tabs, Terminal, TerminalEvent, Toast, ToastKind,
 };
 
 /// Below this many columns the screen folds. Seventy-two is the narrowest at which the three
@@ -41,6 +45,9 @@ pub mod unsupported;
 
 pub mod wizard;
 
+mod settings;
+use settings::SETTINGS;
+
 /// qtools' name in the family: its settings file is `tools.conf` in the family's folder.
 pub const APP: &str = "tools";
 
@@ -53,8 +60,11 @@ fn read_states() -> Vec<TweakState> {
 /// The application's state.
 #[derive(Debug)]
 pub struct Tools {
-    /// Which group the sidebar has selected.
+    /// Which group the sidebar has selected. It stays while the Settings page is shown, so the
+    /// list comes back as it was.
     pub group: Group,
+    /// Whether the Settings page has the place of the list and its detail.
+    pub settings_open: bool,
     /// Which tweak of that group is shown.
     pub selected: usize,
     /// Where every tweak of the catalog stands, in catalog order.
@@ -83,11 +93,24 @@ pub struct Tools {
     /// The first-run wizard, while qtools has no `tools.conf`; `None` once it is finished or
     /// when it was never needed.
     setup: Option<Setup<Msg>>,
-    /// `tools.conf` as held in memory. It holds only the family's shared keys; the wizard
-    /// writes them into it as it finishes.
+    /// `tools.conf` as held in memory: the family's shared keys, which the wizard writes as it
+    /// finishes, and the appearance rows qtools keeps for itself.
     settings: Settings,
+    /// The Settings page's appearance rows, which apply and write each change themselves.
+    appearance: Appearance,
+    /// The family's folder the Settings page writes into; `None` keeps a change until qtools
+    /// quits, for a machine without one.
+    config: Option<PathBuf>,
     /// Where the backups a revert restores from are kept, as the wizard names it.
     backups: String,
+    /// Where the family's update notice is kept and where the last question is remembered;
+    /// `None` asks nothing and leaves the wizard's box out, since it would change nothing.
+    updates: Option<UpdateFolders>,
+    /// The "Say when an update is out" switch, as the family left it. The wizard's box writes it
+    /// only when the wizard finishes; the Settings page writes it as it is turned.
+    update_notice: bool,
+    /// A newer version that was found while a run was on screen, said once the run is closed.
+    waiting_update: Option<Update>,
 }
 
 /// What a confirmation is asking about: which tweaks, in catalog order, and which direction.
@@ -102,10 +125,17 @@ struct Pending {
 impl Tools {
     /// The screen, opened on the packages group, showing the states it was handed. Runs start
     /// this very binary and read the real machine afterwards.
+    ///
+    /// It knows no family folder: the Settings page starts from the look this machine detects and
+    /// keeps a change until qtools quits. [`Opening::new`] gives it the family's.
     pub fn new(states: Vec<TweakState>) -> Self {
         let count = states.len();
+        // A folder that is never created, so resolving reads no one's files and writes nothing.
+        let nowhere = std::env::temp_dir().join("quvyta-tools-no-family");
+        let detected = Family::QUVYTA.preferences_without_saving_in(&nowhere, APP, &crate::locales::i18n());
         Self {
             group: Group::Packages,
+            settings_open: false,
             selected: 0,
             states,
             checked: vec![false; count],
@@ -119,8 +149,23 @@ impl Tools {
             runs: 0,
             setup: None,
             settings: Settings::in_memory(),
-            backups: backups_shown(&crate::state::folder(), std::env::var("HOME").ok().as_deref()),
+            appearance: settings::appearance(detected, None),
+            config: None,
+            backups: shown(&crate::state::folder(), std::env::var("HOME").ok().as_deref()),
+            updates: None,
+            update_notice: true,
+            waiting_update: None,
         }
+    }
+
+    /// The same screen, asking at start whether a newer qtools is out, with the family's switch
+    /// in `folders.config` and the time of the last question in `folders.state`. Tests give
+    /// folders of their own, so nothing they do reads or turns off the person's own switch.
+    #[must_use]
+    pub fn updates(mut self, folders: Option<UpdateFolders>) -> Self {
+        self.update_notice = folders.as_ref().is_none_or(|folders| Family::QUVYTA.update_notice_in(&folders.config));
+        self.updates = folders;
+        self
     }
 
     /// The same screen, with runs started as `program` and states read by `reader` instead of
@@ -130,6 +175,35 @@ impl Tools {
         self.program = program;
         self.reader = reader;
         self
+    }
+
+    /// The question for a newer version of qtools, when the family's update notice is on.
+    ///
+    /// The switch is read here, not only where the question is sent: a family that turned it off
+    /// asks nothing at all, whoever runs the question.
+    fn ask_for_update(&self) -> Command<Msg> {
+        let Some(folders) = &self.updates else { return Command::none() };
+        if !Family::QUVYTA.update_notice_in(&folders.config) {
+            return Command::none();
+        }
+        let check =
+            UpdateCheck::new(Family::QUVYTA, APP, env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"), Msg::NewVersion)
+                .in_folders(folders.config.clone(), folders.state.clone());
+        Command::check_for_update(check)
+    }
+
+    /// Writes the wizard's box to the family's switch, off the drawing thread, when it differs
+    /// from what the family's file says; otherwise asks at once. Only called as the wizard
+    /// finishes, so nothing is written before Finish.
+    fn store_update_notice(&self) -> Command<Msg> {
+        let Some(folders) = &self.updates else { return Command::none() };
+        if Family::QUVYTA.update_notice_in(&folders.config) == self.update_notice {
+            return self.ask_for_update();
+        }
+        let (folder, on) = (folders.config.clone(), self.update_notice);
+        Command::perform(move || {
+            Msg::NoticeStored(Family::QUVYTA.set_update_notice_in(&folder, on).map_err(|error| error.to_string()))
+        })
     }
 
     /// Reads where every tweak stands, off the drawing thread. Used after a run or a revert,
@@ -188,12 +262,48 @@ impl Opening {
         let mut tools = Tools::new(states);
         tools.setup = setup;
         tools.settings = settings.clone();
+        tools.appearance = settings::appearance(preferences.clone(), folder);
+        tools.config = folder.map(Path::to_path_buf);
         Self { tools, settings, preferences }
     }
 }
 
+impl Opening {
+    /// The same opening, asking whether a newer qtools is out over `folders`; see
+    /// [`Tools::updates`].
+    #[must_use]
+    pub fn with_updates(mut self, folders: Option<UpdateFolders>) -> Self {
+        self.tools = self.tools.updates(folders);
+        self
+    }
+}
+
+/// Where the family's update notice is kept and where qtools remembers when it last asked for a
+/// newer version of itself.
+///
+/// The switch is the family's, one for every Quvyta application, so it is read from the family's
+/// folder. The last question is remembered in the family's state folder for qtools, which is not
+/// the folder qtools keeps its backups in: those stay where they have always been.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UpdateFolders {
+    /// The family's configuration folder, whose shared file holds the switch.
+    pub config: PathBuf,
+    /// qtools' state folder in the family, which remembers when the question was last asked.
+    pub state: PathBuf,
+}
+
+impl UpdateFolders {
+    /// This machine's folders, or `None` without a home folder, where nothing could remember the
+    /// switch or the last question and so nothing is asked.
+    #[must_use]
+    pub fn here() -> Option<Self> {
+        let family = Family::QUVYTA;
+        family.config_dir().zip(family.state_dir(APP)).map(|(config, state)| Self { config, state })
+    }
+}
+
 /// `folder` as a person reads it: under their home folder it starts with `~`.
-fn backups_shown(folder: &Path, home: Option<&str>) -> String {
+fn shown(folder: &Path, home: Option<&str>) -> String {
     match home.filter(|home| !home.is_empty()).and_then(|home| folder.strip_prefix(home).ok()) {
         Some(rest) => format!("~/{}", rest.display()),
         None => folder.display().to_string(),
@@ -238,6 +348,24 @@ pub enum Msg {
     Changed(u64, TerminalEvent),
     /// Closes the embedded terminal once its process has ended.
     CloseRun,
+    /// The "Say when an update is out" box of the wizard, or switch of the Settings page, was
+    /// turned.
+    ToggleUpdateNotice(bool),
+    /// The family's update notice was written as the wizard asked, or it could not be.
+    NoticeStored(Result<(), String>),
+    /// A newer version of qtools is out.
+    NewVersion(Update),
+    /// A change on the Settings page's rows.
+    Appearance(AppearanceChange),
+    /// The Settings page's update switch was written into `folder`, or why not.
+    NoticeSaved {
+        /// What it was turned to.
+        on: bool,
+        /// The family's folder it was written into.
+        folder: PathBuf,
+        /// Nothing, or the reason the file could not be written.
+        result: Result<(), String>,
+    },
 }
 
 impl App for Tools {
@@ -245,17 +373,13 @@ impl App for Tools {
 
     fn update(&mut self, msg: Msg) -> Command<Msg> {
         match msg {
-            Msg::PickGroup(key) => {
-                if let Some(group) = Group::ALL.into_iter().find(|group| group.key() == key) {
-                    self.group = group;
-                    self.selected = 0;
-                }
-            }
+            Msg::PickGroup(key) => return self.pick(&key),
             Msg::Select(index) if index < catalog::in_group(self.group).len() => self.selected = index,
             Msg::Select(_) => {}
             Msg::Toggle(index) => {
-                // A tweak that does not fit this machine is never among the checked ones a run applies.
-                if matches!(self.state_of(index), TweakState::Unavailable(_)) {
+                // A tweak that does not fit this machine is never among the checked ones a run
+                // applies, and none is on screen to check while the Settings page is.
+                if self.settings_open || matches!(self.state_of(index), TweakState::Unavailable(_)) {
                     return Command::none();
                 }
                 if let Some(slot) = self.catalog_index(index).and_then(|at| self.checked.get_mut(at)) {
@@ -280,15 +404,34 @@ impl App for Tools {
             Msg::CloseRun => {
                 if self.running.as_ref().is_some_and(|running| running.exit.is_some()) {
                     self.running = None;
+                    if let Some(update) = self.waiting_update.take() {
+                        return Command::toast(update.toast());
+                    }
                 }
             }
+            Msg::ToggleUpdateNotice(on) => return self.toggle_update_notice(on),
+            // The switch was written as the person chose it; the question follows it, which asks
+            // nothing when they turned it off.
+            Msg::NoticeStored(Ok(())) => return self.ask_for_update(),
+            Msg::NoticeStored(Err(reason)) => {
+                return Command::toast(Toast::new(ToastKind::Danger, t!("quvyta.setup.not-saved", reason = reason)));
+            }
+            // A toast floats over the terminal's bottom corner, where its note gives the exit
+            // code, so while a run is on screen the news waits for the list to come back.
+            Msg::NewVersion(update) if self.running.is_some() => self.waiting_update = Some(update),
+            Msg::NewVersion(update) => return Command::toast(update.toast()),
+            // The framework's rows write their own files, key by key, and keep the settings qtools
+            // holds in step, so nothing more is saved here.
+            Msg::Appearance(change) => return self.appearance.update(change, &mut self.settings),
+            Msg::NoticeSaved { on, folder, result } => return self.notice_saved(on, &folder, result),
         }
         Command::none()
     }
 
     fn init(&mut self) -> Command<Msg> {
-        // On the first start the wizard has the screen, so its appearance rows take the keys.
-        if self.setting_up() { Command::focus(wizard::FIRST) } else { Command::none() }
+        // On the first start the wizard has the screen, so its appearance rows take the keys, and
+        // the question waits until it is over: the person may be about to turn it off.
+        if self.setting_up() { Command::focus(wizard::FIRST) } else { self.ask_for_update() }
     }
 
     fn view(&self, ui: &mut View<'_, Msg>) {
@@ -305,11 +448,14 @@ impl App for Tools {
             return None;
         }
         match name {
-            "revert" if self.running.is_none() => Some(Msg::Revert(self.selected)),
+            // The Settings page has no tweak on screen for the key to undo.
+            "revert" if self.running.is_none() && !self.settings_open => Some(Msg::Revert(self.selected)),
             "close-run" if self.running.as_ref().is_some_and(|running| running.exit.is_some()) => Some(Msg::CloseRun),
             // `esc` is bound once, as `close-run`, and closes whatever sits on top: the ended
             // run, or the detail the narrow screen opened below the list.
-            "close-run" if self.running.is_none() && self.detail_open => Some(Msg::ToggleDetail(false)),
+            "close-run" if self.running.is_none() && self.detail_open && !self.settings_open => {
+                Some(Msg::ToggleDetail(false))
+            }
             _ => None,
         }
     }
@@ -349,7 +495,7 @@ impl Tools {
     /// machine is never asked about, the same guard [`Msg::Toggle`] uses; nothing is asked
     /// while a run is on screen either.
     fn ask(&mut self, index: usize, revert: bool) -> Command<Msg> {
-        if self.running.is_some() || matches!(self.state_of(index), TweakState::Unavailable(_)) {
+        if self.running.is_some() || self.settings_open || matches!(self.state_of(index), TweakState::Unavailable(_)) {
             return Command::none();
         }
         let indices = self.chosen_indices(index);
@@ -425,7 +571,9 @@ impl Tools {
         }
         let tweaks = catalog::in_group(self.group);
         let size = ui.size();
-        if size.width < FOLD_BELOW {
+        if self.settings_open {
+            self.settings_body(size, ui);
+        } else if size.width < FOLD_BELOW {
             self.narrow(&tweaks, size, ui);
         } else {
             self.wide(&tweaks, ui);
@@ -443,15 +591,7 @@ impl Tools {
             .panel(|ui| self.detail(tweaks, ui))
             .body(|ui| {
                 ui.row(|ui| {
-                    ui.add(
-                        Menu::new([MenuGroup::new(
-                            "groups",
-                            Group::ALL.map(|group| MenuItem::new(group.key(), t!(&format!("group.{}", group.key())))),
-                        )])
-                        .selected(Some(self.group.key()))
-                        .on_select(|key| Msg::PickGroup(key.to_owned())),
-                    )
-                    .id("groups");
+                    ui.add(self.menu()).id("groups");
                     ui.add(self.list(tweaks)).fill().id("tweaks");
                 })
                 .fill();
@@ -479,18 +619,7 @@ impl Tools {
             .on_toggle(move |_| Msg::ToggleDetail(!open))
             .body(|ui| {
                 ui.column(|ui| {
-                    let active = Group::ALL.iter().position(|group| *group == self.group).unwrap_or_default();
-                    ui.add(
-                        Tabs::new(Group::ALL.map(|group| t!(&format!("group.{}", group.key()))))
-                            .active(active)
-                            .on_select(|index| {
-                                Msg::PickGroup(
-                                    Group::ALL.get(index).map_or_else(String::new, |group| group.key().to_owned()),
-                                )
-                            }),
-                    )
-                    .fill_width()
-                    .id("groups");
+                    ui.add(self.strip()).fill_width().id("groups");
                     let list = ui.add(self.list(tweaks)).id("tweaks");
                     if open {
                         list.height(Length::Cells(list_rows));
@@ -509,6 +638,73 @@ impl Tools {
             // Its own name: the wide panel at this place is open, and a fold must not read as
             // that panel sliding shut.
             .id("fold");
+    }
+
+    /// Shows the group with `key`, or the Settings page.
+    fn pick(&mut self, key: &str) -> Command<Msg> {
+        let was_open = self.settings_open;
+        if key == SETTINGS {
+            self.settings_open = true;
+        } else if let Some(group) = Group::ALL.into_iter().find(|group| group.key() == key) {
+            // Coming back to the group that was open keeps the tweak chosen in it.
+            if group != self.group {
+                self.selected = 0;
+            }
+            self.group = group;
+            self.settings_open = false;
+        }
+        // The page and the list are laid out differently, so the sidebar or the strip the key
+        // was pressed on is drawn anew, under a name of its own on each; the keys follow it there.
+        match (was_open, self.settings_open) {
+            (false, true) => Command::focus(settings::SIDEBAR),
+            (true, false) => Command::focus("groups"),
+            _ => Command::none(),
+        }
+    }
+
+    /// The sidebar: the groups of tweaks, then, apart from them, the Settings page.
+    fn menu(&self) -> Menu<Msg> {
+        let groups = Group::ALL.map(|group| MenuItem::new(group.key(), t!(&format!("group.{}", group.key()))));
+        let selected = if self.settings_open { SETTINGS } else { self.group.key() };
+        Menu::new([
+            MenuGroup::new("groups", groups),
+            MenuGroup::new("app", [MenuItem::new(SETTINGS, t!("settings.title"))]),
+        ])
+        .selected(Some(selected))
+        .on_select(|key| Msg::PickGroup(key.to_owned()))
+    }
+
+    /// The narrow screen's strip: a tab for each group, and the Settings page last.
+    fn strip(&self) -> Tabs<Msg> {
+        let labels = Group::ALL
+            .iter()
+            .map(|group| t!(&format!("group.{}", group.key())))
+            .chain(std::iter::once(t!("settings.title")));
+        let active = if self.settings_open {
+            Group::ALL.len()
+        } else {
+            Group::ALL.iter().position(|group| *group == self.group).unwrap_or_default()
+        };
+        Tabs::new(labels)
+            .active(active)
+            .on_select(|index| Msg::PickGroup(Group::ALL.get(index).map_or(SETTINGS, |group| group.key()).to_owned()))
+    }
+
+    /// The Settings page beside the sidebar, or under the strip on a narrow screen.
+    fn settings_body(&self, size: Size, ui: &mut View<'_, Msg>) {
+        if size.width < FOLD_BELOW {
+            ui.column(|ui| {
+                ui.add(self.strip()).fill_width().id(settings::SIDEBAR);
+                self.settings_page(ui);
+            })
+            .fill();
+        } else {
+            ui.row(|ui| {
+                ui.add(self.menu()).id(settings::SIDEBAR);
+                self.settings_page(ui);
+            })
+            .fill();
+        }
     }
 
     /// The tweaks of the current group, each with its state's mark and word.
@@ -590,6 +786,10 @@ impl Tools {
             ui.add(hints.action_right(Scope::Global, "quit")).fill_width();
             return;
         }
+        if self.settings_open {
+            Self::settings_hints(ui);
+            return;
+        }
         // `KeyHints` keeps every plain `.hint()` ahead of every `.action()`, dropping from the end
         // of that combined list first when the bar is too narrow. The hint to reopen a closed panel
         // matters most exactly when the terminal is narrow enough to have closed it, so it is given
@@ -657,6 +857,12 @@ fn header<M: Clone + 'static>(ui: &mut View<'_, M>) {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod update_tests;
+
+#[cfg(test)]
+mod settings_tests;
 
 #[cfg(test)]
 mod languages;

@@ -188,7 +188,9 @@ fn the_unsupported_notice_reads_in_every_language() {
 /// [`Opening::new`] over an empty temporary family folder, as a first start is.
 fn wizard(root: &std::path::Path, code: &str, width: u16, height: u16) -> Harness<Tools> {
     let states = vec![TweakState::Off; catalog::all().len()];
-    let opening = Opening::new(Some(&root.join("config")), Some(&root.join("fonts")), states);
+    let folders = UpdateFolders { config: root.join("config"), state: root.join("state") };
+    let opening =
+        Opening::new(Some(&root.join("config")), Some(&root.join("fonts")), states).with_updates(Some(folders));
     let mut h = Harness::with_env(opening.tools, crate::locales::env(), width, height);
     h.set_locale(code).set_glyph_mode(GlyphMode::Unicode).set_reduced_motion(true);
     h
@@ -227,6 +229,8 @@ fn the_wizard_reads_in_full_in_every_language_and_width() {
                 text_in(&code, "wizard.touches", &[]),
                 text_in(&code, "wizard.confirm", &[]),
                 undo,
+                text_in(&code, "quvyta.appearance.updates-text", &[("family", "Quvyta".into())]),
+                text_in(&code, "quvyta.appearance.updates", &[]),
                 text_in(&code, "quvyta.wizard.back", &[]),
                 text_in(&code, "quvyta.wizard.finish", &[]),
             ] {
@@ -243,8 +247,86 @@ fn the_wizard_reads_in_full_in_every_language_and_width() {
         assert_clean(&h, &what);
         let finish = text_in(&code, "quvyta.wizard.finish", &[]);
         assert!(h.screen().contains(&finish), "{what}: `{finish}` is off the screen:\n{}", h.screen());
+        let updates = text_in(&code, "quvyta.appearance.updates", &[]);
+        assert!(h.screen().contains(&updates), "{what}: the update box `{updates}` is off the screen:\n{}", h.screen());
+
+        // The shortest page on which the box's description stands under it rather than at the
+        // end of the promises: it must still read whole there, in the longest languages too.
+        let mut h = wizard(root.path(), &code, 48, 22);
+        h.click_text(&text_in(&code, "quvyta.wizard.next", &[]));
+        let what = format!("{code} 48x22 wizard, own step");
+        assert_clean(&h, &what);
+        let screen = h.screen();
+        for text in [
+            text_in(&code, "quvyta.appearance.updates", &[]),
+            text_in(&code, "quvyta.appearance.updates-text", &[("family", "Quvyta".into())]),
+            finish,
+        ] {
+            assert!(reads_whole(&screen, &text), "{what}: `{text}` is cut:\n{screen}");
+        }
     }
     assert!(!root.path().join("config").exists(), "looking writes nothing");
+}
+
+/// qtools set up before in `code`, on a screen of `width` by `height`, with the Settings page
+/// open: built by [`Opening::new`] over a temporary family folder whose files say `code`.
+fn settings_page(root: &std::path::Path, code: &str, width: u16, height: u16) -> Harness<Tools> {
+    let config = root.join("config");
+    std::fs::create_dir_all(&config).expect("folder");
+    std::fs::write(config.join("quvyta.conf"), format!("language = \"{code}\"\ntheme = \"monochrome\"\n"))
+        .expect("family file");
+    std::fs::write(config.join("tools.conf"), "language = \"quvyta\"\ntheme = \"quvyta\"\nicons = \"quvyta\"\n")
+        .expect("own file");
+    let states = vec![TweakState::Off; catalog::all().len()];
+    let folders = UpdateFolders { config: config.clone(), state: root.join("state") };
+    let opening = Opening::new(Some(&config), Some(&root.join("fonts")), states).with_updates(Some(folders));
+    let mut h = Harness::with_env(opening.tools, crate::locales::env(), width, height);
+    h.set_locale(code).set_glyph_mode(GlyphMode::Unicode).set_reduced_motion(true);
+    h.send(Msg::PickGroup("settings".to_owned()));
+    h
+}
+
+#[test]
+fn the_settings_page_reads_in_full_in_every_language_and_width() {
+    let root = super::wizard::tests::Root::new();
+    for code in codes() {
+        for (width, height) in [(48, 44), (80, 40), (120, 40)] {
+            let mut h = settings_page(root.path(), &code, width, height);
+            let what = format!("{code} {width}x{height} settings");
+            assert_clean(&h, &what);
+            let screen = h.screen();
+            for text in [
+                text_in(&code, "settings.title", &[]),
+                text_in(&code, "quvyta.appearance.heading", &[]),
+                text_in(&code, "quvyta.appearance.language", &[]),
+                text_in(&code, "quvyta.appearance.theme", &[]),
+                text_in(&code, "quvyta.appearance.icons", &[]),
+                text_in(&code, "quvyta.appearance.everywhere", &[("family", "Quvyta".into())]),
+                text_in(&code, "quvyta.appearance.reduce-motion", &[]),
+                text_in(&code, "quvyta.appearance.pillar", &[]),
+                text_in(&code, "quvyta.appearance.updates", &[]),
+                text_in(&code, "quvyta.appearance.updates-text", &[("family", "Quvyta".into())]),
+            ] {
+                assert!(reads_whole(&screen, &text), "{what}: `{text}` is cut:\n{screen}");
+            }
+            let footer = screen.lines().last().unwrap_or_default();
+            assert!(!footer.contains(&text_in(&code, "hints.apply", &[])), "{what}: no apply hint here:\n{screen}");
+            h.set_glyph_mode(GlyphMode::Ascii);
+            assert_clean(&h, &format!("{what} ascii"));
+            assert_no_forbidden_shapes(&h, &format!("{what} ascii"));
+        }
+        // A short screen: the page scrolls, its first rows and the way back stay on screen.
+        let mut h = settings_page(root.path(), &code, 80, 14);
+        let what = format!("{code} 80x14 settings");
+        assert_clean(&h, &what);
+        let screen = h.screen();
+        for key in ["settings.title", "quvyta.appearance.heading", "group.packages"] {
+            let label = text_in(&code, key, &[]);
+            assert!(screen.contains(&label), "{what}: `{label}` is cut:\n{screen}");
+        }
+        h.set_glyph_mode(GlyphMode::Ascii);
+        assert_no_forbidden_shapes(&h, &format!("{what} ascii"));
+    }
 }
 
 #[test]
@@ -266,6 +348,10 @@ fn visual_review_of_every_language() {
         focus_tweaks(&mut h);
         h.press("enter");
         pages.push(h.html(&format!("{code} 100x24, confirmation")));
+        // A folder of its own: the wizard of the next language needs one without `tools.conf`.
+        let set_up = super::wizard::tests::Root::new();
+        pages.push(settings_page(set_up.path(), &code, 100, 30).html(&format!("{code} 100x30, settings")));
+        pages.push(settings_page(set_up.path(), &code, 48, 30).html(&format!("{code} 48x30, settings")));
     }
     let target = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("target");
     std::fs::create_dir_all(&target).expect("the target directory exists");

@@ -118,6 +118,7 @@ command = "commande"
 move = "défiler"
 toggle = "cocher"
 apply = "appliquer"
+change = "modifier"
 
 [confirm]
 "apply.title" = "Appliquer ?"
@@ -137,6 +138,11 @@ close = "Fermer"
 done = "Terminé"
 failed = "Échec"
 "failed-body" = "La sortie en indique la raison. Ce qui a été fait avant l’échec peut toujours être annulé."
+
+# The Settings page: the family's appearance rows and its update notice.
+[settings]
+title = "Réglages"
+"not-saved" = "Le réglage n’a pas pu être enregistré et a été rétabli"
 
 [keys]
 revert = "annuler"

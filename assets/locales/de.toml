@@ -118,6 +118,7 @@ command = "Befehl"
 move = "bewegen"
 toggle = "wählen"
 apply = "anwenden"
+change = "ändern"
 
 [confirm]
 "apply.title" = "Anwenden?"
@@ -137,6 +138,11 @@ close = "Schließen"
 done = "Fertig"
 failed = "Fehlgeschlagen"
 "failed-body" = "Die Ausgabe nennt den Grund. Was vor dem Fehler erledigt wurde, lässt sich weiterhin rückgängig machen."
+
+# The Settings page: the family's appearance rows and its update notice.
+[settings]
+title = "Einstellungen"
+"not-saved" = "Die Einstellung konnte nicht gespeichert werden und wurde zurückgesetzt"
 
 [keys]
 revert = "rückgängig"

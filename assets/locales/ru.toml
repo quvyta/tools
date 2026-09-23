@@ -118,6 +118,7 @@ command = "команда"
 move = "выбор"
 toggle = "отметить"
 apply = "применить"
+change = "изменить"
 
 [confirm]
 "apply.title" = "Применить?"
@@ -137,6 +138,11 @@ close = "Закрыть"
 done = "Готово"
 failed = "Не удалось"
 "failed-body" = "Причина видна в выводе. То, что успело выполниться до ошибки, всё равно можно откатить."
+
+# The Settings page: the family's appearance rows and its update notice.
+[settings]
+title = "Настройки"
+"not-saved" = "Настройку не удалось сохранить, поэтому её вернули обратно"
 
 [keys]
 revert = "откатить"

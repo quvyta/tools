@@ -10,7 +10,7 @@ fn harness(width: u16, height: u16) -> Harness<Tools> {
 
 /// Moves focus to the tweaks list. The groups sidebar is the first stop in reading order, and
 /// the panel's own edge (opened by `on_toggle`) is one more; loop rather than hard-code how many.
-fn focus_tweaks(h: &mut Harness<Tools>) {
+pub(super) fn focus_tweaks(h: &mut Harness<Tools>) {
     for _ in 0..5 {
         h.press("tab");
         if h.is_focused("tweaks") {
@@ -271,10 +271,10 @@ fn cancelling_the_confirmation_changes_nothing() {
 }
 
 /// A stand-in for the binary a run starts: a shell script that gets the same arguments.
-struct Script(std::path::PathBuf);
+pub(super) struct Script(pub(super) std::path::PathBuf);
 
 impl Script {
-    fn new(name: &str, body: &str) -> Self {
+    pub(super) fn new(name: &str, body: &str) -> Self {
         use std::os::unix::fs::PermissionsExt;
         let path = std::env::temp_dir().join(format!("qtools-{}-{name}.sh", std::process::id()));
         std::fs::write(&path, format!("#!/bin/sh\n{body}\n")).expect("the script is written");
@@ -289,7 +289,7 @@ impl Drop for Script {
     }
 }
 
-fn every_tweak_off() -> Vec<TweakState> {
+pub(super) fn every_tweak_off() -> Vec<TweakState> {
     vec![TweakState::Off; crate::catalog::all().len()]
 }
 
@@ -302,12 +302,12 @@ fn harness_running(script: &Script, states: Vec<TweakState>) -> Harness<Tools> {
 }
 
 /// Answers the open confirmation with its confirm button (Cancel has focus first).
-fn say_yes(h: &mut Harness<Tools>) {
+pub(super) fn say_yes(h: &mut Harness<Tools>) {
     h.press("tab").press("enter");
 }
 
 /// Lets the run's watch deliver output until the process has ended, then lets the toast in.
-fn wait_for_exit(h: &mut Harness<Tools>) {
+pub(super) fn wait_for_exit(h: &mut Harness<Tools>) {
     use std::time::Duration;
     for _ in 0..100 {
         if h.app().running.as_ref().is_some_and(|running| running.exit.is_some()) {

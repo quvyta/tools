@@ -2,6 +2,13 @@
 
 Every release of quvyta-tools, newest first. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/); while the version starts with 0, a minor release may change the command line or the files qtools keeps under `~/.local/state/quvyta-tools/`, and the notes say so when it does.
 
+## 0.1.9 - 2026-09-23
+
+### Added
+
+- A Settings page, the last entry of the sidebar (and the last tab on a narrow screen). It carries the same rows as every other Quvyta application: language, colour theme, icons, reduced motion and the pillar, each with its "In every Quvyta application" box, and the family's update-notice switch. A change applies at once and is written in the background; when a file cannot be written the row says so, and a failed update-notice switch goes back and says where and why.
+- The family's update notice. When qtools opens, at most once a day and never holding up the screen, it asks crates.io whether a newer `quvyta-tools` is out and says so in a notice; a notice that comes while an item is running waits until its terminal is closed. Nothing is asked while the first-start wizard is open, by `--run` or `--revert`, or on an unsupported distribution. The switch is the whole family's: a box on the wizard's second page, a row on the Settings page, or `update-notice = false` in `~/.config/quvyta/quvyta.conf`. The README's new section "No telemetry, and what goes over the network" says exactly what is sent.
+
 ## 0.1.8 - 2026-09-23
 
 ### Added

@@ -118,6 +118,7 @@ command = "comando"
 move = "mover"
 toggle = "marcar"
 apply = "aplicar"
+change = "alterar"
 
 [confirm]
 "apply.title" = "Aplicar isto?"
@@ -137,6 +138,11 @@ close = "Fechar"
 done = "Pronto"
 failed = "Falhou"
 "failed-body" = "A saída mostra o motivo. O que foi feito antes da falha ainda pode ser desfeito."
+
+# The Settings page: the family's appearance rows and its update notice.
+[settings]
+title = "Configurações"
+"not-saved" = "A configuração não pôde ser salva, então foi revertida"
 
 [keys]
 revert = "desfazer"

@@ -118,6 +118,7 @@ command = "コマンド"
 move = "移動"
 toggle = "選択"
 apply = "適用"
+change = "変更"
 
 [confirm]
 "apply.title" = "適用しますか？"
@@ -137,6 +138,11 @@ close = "閉じる"
 done = "完了"
 failed = "失敗しました"
 "failed-body" = "原因は出力に表示されています。失敗より前に行われた変更は元に戻せます。"
+
+# The Settings page: the family's appearance rows and its update notice.
+[settings]
+title = "設定"
+"not-saved" = "設定を保存できなかったため、元に戻しました"
 
 [keys]
 revert = "元に戻す"

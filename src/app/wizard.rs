@@ -4,10 +4,13 @@
 //! It opens while qtools has no `tools.conf`, and only then. The framework owns the appearance
 //! step, the buttons and the two files; nothing at all is written until Finish, so a qtools
 //! closed half-way leaves the settings folder exactly as it was and the wizard comes again next
-//! start. qtools has no settings of its own, so its step asks nothing: it only reads.
+//! start. qtools has no settings of its own beyond the family's look, so its step asks one thing
+//! only: whether the family says when an update is out, a switch it shares with every Quvyta
+//! application and which the Settings page offers again afterwards.
 
 use qframe::prelude::*;
-use qframe::widgets::{ScrollView, Setup, SetupWizard};
+use qframe::storage::Family;
+use qframe::widgets::{Checkbox, ScrollView, Setup, SetupWizard};
 
 use super::{Msg, Tools};
 
@@ -17,6 +20,14 @@ const AROUND_PAGE: u16 = 8;
 
 /// The fewest rows the page keeps, however short the terminal is.
 const LEAST_PAGE_ROWS: u16 = 8;
+
+/// The fewest page rows at which the update box's description stands under it: the intro, the
+/// box and the four lines the description takes at the narrowest width, with the blank rows
+/// between them, and still a few rows for the promises.
+const DESCRIPTION_UNDER_BOX: u16 = 14;
+
+/// The cells a checkbox's label starts after: its two-cell box and the gap beside it.
+const BOX_AND_GAP: u16 = 4;
 
 /// The widget id the keyboard starts on: the appearance rows of the framework's step.
 pub(super) const FIRST: &str = "setup-appearance";
@@ -28,11 +39,17 @@ impl Tools {
     }
 
     /// The wizard wrote the shared keys and made `tools.conf`. qtools has no keys of its own to
-    /// add, so the list simply takes the screen and the keys; the look chosen is in force
-    /// already, since the wizard applied each choice as it was made.
+    /// add, so the list takes the screen and the keys, and the Settings page starts from the
+    /// wizard's choices; the look chosen is in force already, since
+    /// the wizard applied each choice as it was made. The update box is written now, to the
+    /// family's switch, and the question held back while the wizard was open follows it.
     pub(super) fn finish_setup(&mut self) -> Command<Msg> {
-        self.setup = None;
-        Command::focus("tweaks")
+        // The Settings page carries on from what the wizard chose: its appearance held those
+        // choices without writing them, and the update box is qtools' own already.
+        if let Some(setup) = self.setup.take() {
+            self.appearance = super::settings::appearance(setup.preferences().clone(), self.config.as_deref());
+        }
+        Command::batch([Command::focus("tweaks"), self.store_update_notice()])
     }
 
     /// The wizard, while it is wanted: the framework's appearance step, then qtools' own.
@@ -46,7 +63,7 @@ impl Tools {
             // Every step is given the rows that are left, so the buttons stand at the bottom
             // wherever the person is.
             SetupWizard::new(setup)
-                .step(t!("wizard.step-before"), |ui| self.before_step(ui))
+                .step(t!("wizard.step-before"), |ui| self.before_step(rows, ui))
                 .page_height(rows)
                 .show(ui)
                 .fill_width();
@@ -59,7 +76,11 @@ impl Tools {
     /// is a promise the list keeps: the detail and the confirmation both list what an item
     /// touches, a run starts only from the confirmation and in the embedded terminal, where
     /// `sudo` asks for the password, and the revert key undoes from the journal's backups.
-    fn before_step(&self, ui: &mut View<'_, Msg>) {
+    ///
+    /// What the update box asks is said right under it when the page has `rows` enough; on a
+    /// short page it ends the scrolling promises instead, so the box keeps its row.
+    fn before_step(&self, rows: u16, ui: &mut View<'_, Msg>) {
+        let beside_box = rows >= DESCRIPTION_UNDER_BOX;
         // The key is read from the keymap, so the line stays true if the person rebinds it.
         let key = ui
             .env()
@@ -81,12 +102,38 @@ impl Tools {
                     }
                     ui.add(Text::new(promise)).fill_width();
                 }
+                if self.updates.is_some() && !beside_box {
+                    ui.spacer().height(Length::Cells(1));
+                    ui.add(Text::new(update_text()).role("faint")).fill_width();
+                }
             })
             .fill_width();
         })
         .fill()
         .id("wizard-before");
+        // The box stays under the page rather than at the end of it, so a short screen that
+        // scrolls the promises never hides the one choice this step offers.
+        if self.updates.is_some() {
+            ui.spacer().height(Length::Cells(1));
+            ui.add(
+                Checkbox::new(self.update_notice)
+                    .label(t!("quvyta.appearance.updates"))
+                    .on_toggle(Msg::ToggleUpdateNotice),
+            )
+            .fill_width()
+            .id("wizard-updates");
+            if beside_box {
+                // Under the label, where a setting's description stands.
+                let under_label = Padding { top: 0, right: 0, bottom: 0, left: BOX_AND_GAP };
+                ui.add(Text::new(update_text()).role("faint")).fill_width().padding(under_label);
+            }
+        }
     }
+}
+
+/// What the update box asks and what it never sends, in the family's own words.
+fn update_text() -> String {
+    t!("quvyta.appearance.updates-text", family = Family::QUVYTA.title())
 }
 
 /// The name over the wizard, with the tagline when there is room for it whole: cut short it

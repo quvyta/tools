@@ -118,6 +118,7 @@ command = "命令"
 move = "移动"
 toggle = "勾选"
 apply = "应用"
+change = "更改"
 
 [confirm]
 "apply.title" = "要应用吗？"
@@ -137,6 +138,11 @@ close = "关闭"
 done = "完成"
 failed = "失败了"
 "failed-body" = "原因见输出。失败前已完成的部分仍可撤销。"
+
+# The Settings page: the family's appearance rows and its update notice.
+[settings]
+title = "设置"
+"not-saved" = "设置未能保存，已还原"
 
 [keys]
 revert = "撤销"
