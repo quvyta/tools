@@ -156,3 +156,10 @@ stopped = "Os ajustes restantes não foram executados."
 [unsupported]
 title = "Por enquanto, só Arch Linux"
 message = "Por enquanto, o qtools só funciona no Arch Linux e em distribuições baseadas nele; o suporte a outras distribuições virá depois. Nada foi alterado."
+
+[wizard]
+"step-before" = "Antes de começar"
+intro = "O qtools muda a configuração do seu sistema, por isso mantém três promessas."
+touches = "Cada item mostra no que vai mexer antes de rodar qualquer coisa."
+confirm = "Nada roda antes de você confirmar. Tudo roda em um terminal na tela, onde você digita sua própria senha."
+undo = "Um item aplicado pode ser desfeito com {key}, a partir do backup que o qtools mantém em {folder}."

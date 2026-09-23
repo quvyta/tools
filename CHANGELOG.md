@@ -2,6 +2,17 @@
 
 Every release of quvyta-tools, newest first. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/); while the version starts with 0, a minor release may change the command line or the files qtools keeps under `~/.local/state/quvyta-tools/`, and the notes say so when it does.
 
+## 0.1.8 - 2026-09-23
+
+### Added
+
+- A first-start wizard, the same one every Quvyta application opens with. Its first page asks for the language, the colour theme and the icons, shows the icons in all three modes so you can choose by eye, and offers to install the Nerd Font symbols into your own font folder when they are missing; each choice can be shared with the whole family or kept to qtools. Its second page says what qtools promises before it changes anything: every item shows what it touches, nothing runs until you confirm, and an applied item can be undone. Nothing is written until you finish.
+
+### Changed
+
+- qtools now follows the family's shared language, theme and icons from `~/.config/quvyta/quvyta.conf`, and has a settings file of its own, `~/.config/quvyta/tools.conf`, which the wizard makes and which holds only those three choices. Its state and backups stay where they were, under `~/.local/state/quvyta-tools/`.
+- Built on quvyta-framework 0.1.18.
+
 ## 0.1.7 - 2026-09-20
 
 ### Added

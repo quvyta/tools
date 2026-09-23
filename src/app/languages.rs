@@ -11,6 +11,7 @@ use qframe::text;
 
 use super::unsupported::Unsupported;
 use super::*;
+use crate::tweak::TweakState;
 
 /// The sizes the layout is designed for: wide, the narrowest fold, and short.
 const SIZES: [(u16, u16); 3] = [(100, 24), (48, 20), (80, 14)];
@@ -183,10 +184,78 @@ fn the_unsupported_notice_reads_in_every_language() {
     }
 }
 
+/// The wizard of a first start in `code`, on a screen of `width` by `height`: built by
+/// [`Opening::new`] over an empty temporary family folder, as a first start is.
+fn wizard(root: &std::path::Path, code: &str, width: u16, height: u16) -> Harness<Tools> {
+    let states = vec![TweakState::Off; catalog::all().len()];
+    let opening = Opening::new(Some(&root.join("config")), Some(&root.join("fonts")), states);
+    let mut h = Harness::with_env(opening.tools, crate::locales::env(), width, height);
+    h.set_locale(code).set_glyph_mode(GlyphMode::Unicode).set_reduced_motion(true);
+    h
+}
+
+/// Whether `text` stands on screen whole, however it was wrapped: the screen and the text are
+/// compared without their spaces, so a line broken over several rows still counts.
+fn reads_whole(screen: &str, text: &str) -> bool {
+    let squeeze = |text: &str| text.chars().filter(|c| !c.is_whitespace()).collect::<String>();
+    squeeze(screen).contains(&squeeze(text))
+}
+
+#[test]
+fn the_wizard_reads_in_full_in_every_language_and_width() {
+    let root = super::wizard::tests::Root::new();
+    for code in codes() {
+        for (width, height) in [(48, 40), (80, 30), (120, 30)] {
+            let mut h = wizard(root.path(), &code, width, height);
+            let what = format!("{code} {width}x{height} wizard");
+            assert!(h.app().setting_up(), "{what}");
+            assert_clean(&h, &what);
+            let screen = h.screen();
+            for key in ["quvyta.appearance.heading", "wizard.step-before", "quvyta.setup.defaults"] {
+                let label = text_in(&code, key, &[]);
+                assert!(screen.contains(&label), "{what}: `{label}` is cut:\n{screen}");
+            }
+
+            h.click_text(&text_in(&code, "quvyta.wizard.next", &[]));
+            let what = format!("{what}, own step");
+            assert_clean(&h, &what);
+            let screen = h.screen();
+            let undo =
+                text_in(&code, "wizard.undo", &[("key", "z".into()), ("folder", h.app().backups.as_str().into())]);
+            for text in [
+                text_in(&code, "wizard.intro", &[]),
+                text_in(&code, "wizard.touches", &[]),
+                text_in(&code, "wizard.confirm", &[]),
+                undo,
+                text_in(&code, "quvyta.wizard.back", &[]),
+                text_in(&code, "quvyta.wizard.finish", &[]),
+            ] {
+                assert!(reads_whole(&screen, &text), "{what}: `{text}` is cut:\n{screen}");
+            }
+            h.set_glyph_mode(GlyphMode::Ascii);
+            assert_no_forbidden_shapes(&h, &what);
+        }
+        // The shortest screen the wizard is laid out for, its page at the fewest rows it keeps:
+        // the page scrolls and the buttons stay on screen.
+        let mut h = wizard(root.path(), &code, 48, 16);
+        h.click_text(&text_in(&code, "quvyta.wizard.next", &[]));
+        let what = format!("{code} 48x16 wizard, own step");
+        assert_clean(&h, &what);
+        let finish = text_in(&code, "quvyta.wizard.finish", &[]);
+        assert!(h.screen().contains(&finish), "{what}: `{finish}` is off the screen:\n{}", h.screen());
+    }
+    assert!(!root.path().join("config").exists(), "looking writes nothing");
+}
+
 #[test]
 fn visual_review_of_every_language() {
     let mut pages = Vec::new();
+    let root = super::wizard::tests::Root::new();
     for code in codes() {
+        let mut h = wizard(root.path(), &code, 80, 30);
+        pages.push(h.html(&format!("{code} 80x30, wizard")));
+        h.click_text(&text_in(&code, "quvyta.wizard.next", &[]));
+        pages.push(h.html(&format!("{code} 80x30, wizard's own step")));
         pages.push(harness(&code, 100, 24).html(&format!("{code} 100x24")));
         pages.push(harness(&code, 48, 20).html(&format!("{code} 48x20")));
         let mut h = harness(&code, 48, 20);

@@ -156,3 +156,10 @@ stopped = "其余设置未执行。"
 [unsupported]
 title = "目前仅支持 Arch Linux"
 message = "qtools 目前只能在 Arch Linux 及其衍生发行版上运行，对其他发行版的支持以后会加入。本机未做任何更改。"
+
+[wizard]
+"step-before" = "开始之前"
+intro = "qtools 会更改系统的配置方式，所以它有三个承诺。"
+touches = "每一项都会在执行前显示它将改动哪些内容。"
+confirm = "未经你确认，不会执行任何操作。所有命令都在屏幕上的终端里运行，由你亲自输入密码。"
+undo = "已应用的项目可以用 {key} 撤销，还原自 qtools 保存在 {folder} 中的备份。"

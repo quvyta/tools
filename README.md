@@ -106,7 +106,11 @@ how many steps will ask for your password.
 
 ## Languages
 
-The interface comes in English, Turkish, German, Spanish, French, Brazilian Portuguese, Russian, Simplified Chinese and Japanese. qtools follows your system language (`LC_ALL`, `LC_MESSAGES` or `LANG`), so `pt_BR.UTF-8` gives Brazilian Portuguese and `zh_CN.UTF-8` Simplified Chinese; any other language falls back to English.
+The interface comes in English, Turkish, German, Spanish, French, Brazilian Portuguese, Russian, Simplified Chinese and Japanese. Until you choose one, qtools follows your system language (`LC_ALL`, `LC_MESSAGES` or `LANG`), so `pt_BR.UTF-8` gives Brazilian Portuguese and `zh_CN.UTF-8` Simplified Chinese; any other language falls back to English.
+
+## First start
+
+The first time qtools opens, a short wizard asks for the language, the colour theme and the icons, each with an "In every Quvyta application" box that shares the choice with the rest of the family. Its second page says what qtools promises before it changes anything. Nothing is written until you finish; closing it half-way leaves everything as it was, and the wizard comes again next time. Finishing writes `~/.config/quvyta/tools.conf`, which holds only those three choices, and the family's `~/.config/quvyta/quvyta.conf` if it is not there yet.
 
 ## The Packages group
 

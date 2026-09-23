@@ -156,3 +156,11 @@ stopped = "Kalan maddeler çalıştırılmadı."
 [unsupported]
 title = "Şimdilik yalnızca Arch Linux"
 message = "qtools şimdilik yalnızca Arch Linux ve türevlerinde çalışır; diğer dağıtımların desteği sonra gelecek. Bu makinede hiçbir şey değiştirilmedi."
+
+# İlk açılış sihirbazının kendi adımı. {key} geri alma tuşu, {folder} yedeklerin durduğu yer.
+[wizard]
+"step-before" = "Başlamadan önce"
+intro = "qtools sisteminin ayarlarını değiştirir; bu yüzden her seferinde şu üç sözü tutar."
+touches = "Her madde, bir şey çalışmadan önce neye dokunacağını gösterir."
+confirm = "Sen onaylamadan hiçbir şey çalışmaz. İş ekrandaki bir terminalde yürür ve parolanı orada kendin yazarsın."
+undo = "Uygulanan bir madde {key} ile geri alınır; qtools yedeğini {folder} altında tutar."

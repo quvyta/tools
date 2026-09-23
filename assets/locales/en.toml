@@ -156,3 +156,11 @@ stopped = "The remaining tweaks were not run."
 [unsupported]
 title = "Only Arch Linux for now"
 message = "qtools works only on Arch Linux and distributions built on it for now; support for other distributions will come later. Nothing was changed."
+
+# The first-run wizard's own step. {key} is the undo key, {folder} where the backups are kept.
+[wizard]
+"step-before" = "Before you start"
+intro = "qtools changes how your system is set up, so it keeps three promises."
+touches = "Every item shows what it will touch before anything runs."
+confirm = "Nothing runs until you confirm. It runs in a terminal on screen, where you type your own password."
+undo = "An applied item can be undone with {key}, from the backup qtools keeps in {folder}."

@@ -8,14 +8,17 @@
 //! detail panel can be closed by hand to give the list the full width.
 //!
 //! While a run is under way the columns give way to the embedded terminal that carries it out,
-//! and come back when the person closes it.
+//! and come back when the person closes it. On the first start the first-run wizard
+//! ([`crate::app::wizard`]) has the whole screen instead, until it is finished.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
+use qframe::icons::nerd_font::Install;
 use qframe::prelude::*;
+use qframe::storage::{Family, Preferences, Settings};
 use qframe::widgets::{
-    Badge, Button, Closed, List, ListItem, Menu, MenuGroup, MenuItem, ScrollView, Side, SidePanel, Tabs, Terminal,
-    TerminalEvent, Toast, ToastKind,
+    Badge, Button, Closed, List, ListItem, Menu, MenuGroup, MenuItem, ScrollView, Setup, SetupMsg, Side, SidePanel,
+    Tabs, Terminal, TerminalEvent, Toast, ToastKind,
 };
 
 /// Below this many columns the screen folds. Seventy-two is the narrowest at which the three
@@ -35,6 +38,11 @@ pub mod run;
 use run::Running;
 
 pub mod unsupported;
+
+pub mod wizard;
+
+/// qtools' name in the family: its settings file is `tools.conf` in the family's folder.
+pub const APP: &str = "tools";
 
 /// Reads where every tweak stands, on this machine.
 fn read_states() -> Vec<TweakState> {
@@ -72,6 +80,14 @@ pub struct Tools {
     reader: fn() -> Vec<TweakState>,
     /// How many runs were started, so a watch of an earlier run is told from the current one.
     runs: u64,
+    /// The first-run wizard, while qtools has no `tools.conf`; `None` once it is finished or
+    /// when it was never needed.
+    setup: Option<Setup<Msg>>,
+    /// `tools.conf` as held in memory. It holds only the family's shared keys; the wizard
+    /// writes them into it as it finishes.
+    settings: Settings,
+    /// Where the backups a revert restores from are kept, as the wizard names it.
+    backups: String,
 }
 
 /// What a confirmation is asking about: which tweaks, in catalog order, and which direction.
@@ -101,6 +117,9 @@ impl Tools {
             program: std::env::current_exe().unwrap_or_else(|_| PathBuf::from("qtools")),
             reader: read_states,
             runs: 0,
+            setup: None,
+            settings: Settings::in_memory(),
+            backups: backups_shown(&crate::state::folder(), std::env::var("HOME").ok().as_deref()),
         }
     }
 
@@ -118,6 +137,66 @@ impl Tools {
     fn refresh(&self) -> Command<Msg> {
         let reader = self.reader;
         Command::perform(move || Msg::StatesRead(reader()))
+    }
+}
+
+/// What the screen starts with: qtools itself, with the wizard when it is wanted, its settings
+/// file and the family's look the runtime opens in.
+#[derive(Debug)]
+pub struct Opening {
+    /// The screen, holding the wizard on a first start.
+    pub tools: Tools,
+    /// `tools.conf`, for the runtime's saved look.
+    pub settings: Settings,
+    /// The family's language, theme and icons, in force from the first frame.
+    pub preferences: Preferences,
+}
+
+impl Opening {
+    /// Builds the screen for a machine whose family folder is `folder` (the platform's own, or a
+    /// test's) with the tweaks standing as `states`. `fonts`, when given, is the only folder the
+    /// wizard looks in for a Nerd Font and the one it would install into, without registering
+    /// it; tests give one so no real font is looked at. Without a family folder there is nowhere
+    /// to write what the wizard asks, so it does not open.
+    ///
+    /// Nothing is written here while the wizard is wanted: its preferences are resolved without
+    /// saving, where resolving them the usual way would make `quvyta.conf` before anything was
+    /// chosen.
+    pub fn new(folder: Option<&Path>, fonts: Option<&Path>, states: Vec<TweakState>) -> Self {
+        let family = Family::QUVYTA;
+        let i18n = crate::locales::i18n();
+        let setup = folder
+            .map(|folder| {
+                let setup = Setup::new_in(folder, family, APP, &i18n, Msg::Setup).on_finish(Msg::SetUp);
+                match fonts {
+                    Some(fonts) => setup
+                        .install(Install::new().target(fonts.join("QuvytaNerdFont")).register(false))
+                        .font_dirs(vec![fonts.to_path_buf()]),
+                    None => setup,
+                }
+            })
+            .filter(Setup::needed);
+        let preferences = match (&setup, folder) {
+            (Some(setup), _) => setup.preferences().clone(),
+            (None, Some(folder)) => family.preferences_in(folder, APP, &i18n),
+            (None, None) => family.preferences(APP, &i18n),
+        };
+        let settings = match folder {
+            Some(folder) => Settings::open(folder.join(format!("{APP}.conf"))).member_of(&family),
+            None => Settings::load_member(&family, APP),
+        };
+        let mut tools = Tools::new(states);
+        tools.setup = setup;
+        tools.settings = settings.clone();
+        Self { tools, settings, preferences }
+    }
+}
+
+/// `folder` as a person reads it: under their home folder it starts with `~`.
+fn backups_shown(folder: &Path, home: Option<&str>) -> String {
+    match home.filter(|home| !home.is_empty()).and_then(|home| folder.strip_prefix(home).ok()) {
+        Some(rest) => format!("~/{}", rest.display()),
+        None => folder.display().to_string(),
     }
 }
 
@@ -151,6 +230,10 @@ pub enum Msg {
     Revert(usize),
     /// The confirmation was answered "yes".
     Confirmed,
+    /// Something on the framework's step of the first-run wizard, or on its buttons.
+    Setup(SetupMsg),
+    /// The wizard wrote the shared keys and made `tools.conf`.
+    SetUp,
     /// The embedded terminal of run number `.0` has new output, or its process ended.
     Changed(u64, TerminalEvent),
     /// Closes the embedded terminal once its process has ended.
@@ -185,6 +268,14 @@ impl App for Tools {
             Msg::Apply(index) => return self.ask(index, false),
             Msg::Revert(index) => return self.ask(index, true),
             Msg::Confirmed => return self.confirmed(),
+            // The framework owns its step: it applies each change at once, writes the two files
+            // when the wizard finishes, and answers with `Msg::SetUp`.
+            Msg::Setup(msg) => {
+                if let Some(setup) = self.setup.as_mut() {
+                    return setup.update(msg, &mut self.settings);
+                }
+            }
+            Msg::SetUp => return self.finish_setup(),
             Msg::Changed(run, event) => return self.changed(run, event),
             Msg::CloseRun => {
                 if self.running.as_ref().is_some_and(|running| running.exit.is_some()) {
@@ -195,11 +286,24 @@ impl App for Tools {
         Command::none()
     }
 
+    fn init(&mut self) -> Command<Msg> {
+        // On the first start the wizard has the screen, so its appearance rows take the keys.
+        if self.setting_up() { Command::focus(wizard::FIRST) } else { Command::none() }
+    }
+
     fn view(&self, ui: &mut View<'_, Msg>) {
+        if self.setting_up() {
+            self.setup_wizard(ui);
+            return;
+        }
         AppShell::new().header(header).body(|ui| self.body(ui)).footer(|ui| self.footer(ui)).show(ui);
     }
 
     fn action(&self, name: &str) -> Option<Msg> {
+        // Behind the wizard the list is not on screen, so none of its keys may act on it.
+        if self.setting_up() {
+            return None;
+        }
         match name {
             "revert" if self.running.is_none() => Some(Msg::Revert(self.selected)),
             "close-run" if self.running.as_ref().is_some_and(|running| running.exit.is_some()) => Some(Msg::CloseRun),

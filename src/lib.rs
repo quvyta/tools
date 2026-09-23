@@ -31,6 +31,7 @@ use std::io;
 use std::process::ExitCode;
 
 use qframe::runtime::Runtime;
+use qframe::storage::Family;
 
 /// Runs one `qtools` invocation on this machine: a `--run` or `--revert` line carries out its
 /// tweaks and exits, anything else opens the screen. Both commands, `qtools` and
@@ -75,10 +76,16 @@ pub fn run_on(args: impl IntoIterator<Item = String>, os_release: Option<&str>) 
     let states =
         catalog::all().iter().map(|tweak| tweak.state(&mut system).unwrap_or(tweak::TweakState::Off)).collect();
 
+    // The family's folder decides whether the wizard opens and where it writes; the look it
+    // resolves is in force from the first frame.
+    let folder = Family::QUVYTA.config_dir();
+    let opening = app::Opening::new(folder.as_deref(), None, states);
     locales::LOCALES
         .iter()
-        .fold(Runtime::new(app::Tools::new(states)), |runtime, (file, text)| runtime.locale_source(*file, *text))
+        .fold(Runtime::new(opening.tools), |runtime, (file, text)| runtime.locale_source(*file, *text))
         .keymap_source(locales::KEYMAP.0, locales::KEYMAP.1)
+        .settings(&opening.settings)
+        .preferences(&opening.preferences)
         .run()?;
     Ok(ExitCode::SUCCESS)
 }

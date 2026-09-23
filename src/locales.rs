@@ -1,6 +1,7 @@
 //! The language files and the keymap, compiled in so an installed binary needs nothing beside it.
 
 use qframe::env::{AssetDirs, Env};
+use qframe::i18n::I18n;
 
 /// The compiled-in language files. English comes first: it is the fallback, and every other file
 /// is held to its keys.
@@ -27,6 +28,16 @@ pub fn env() -> Env {
         ..AssetDirs::default()
     };
     Env::load(&dirs).expect("the compiled-in locales are readable")
+}
+
+/// The languages qtools speaks, for resolving the family's language before the runtime has
+/// loaded them: a language this list lacks is never chosen for it.
+pub fn i18n() -> I18n {
+    let mut i18n = I18n::builtin();
+    for (file, text) in LOCALES {
+        i18n.add_source(file, text);
+    }
+    i18n
 }
 
 #[cfg(test)]
