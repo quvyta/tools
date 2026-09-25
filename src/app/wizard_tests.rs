@@ -56,8 +56,16 @@ fn start(root: &Path, width: u16, height: u16) -> Harness<Tools> {
     h
 }
 
-/// A shared Quvyta look another app has already set up: English, the default theme, Unicode icons. The
-/// language is written down so what is on screen does not depend on the machine's own.
+/// A shared Quvyta file that holds only English: theme and icons are still open, so the wizard
+/// asks the appearance step. The language is written down so what is on screen does not depend
+/// on the machine's own.
+fn shared_language_in_english(root: &Path) {
+    fs::create_dir_all(root.join("config")).expect("folder");
+    fs::write(root.join("config/quvyta.conf"), "language = \"en\"\n").expect("shared file");
+}
+
+/// A shared Quvyta look another app has already set up in full: English, the default theme,
+/// Unicode icons. Every row of the appearance step is answered, so the wizard skips it.
 fn shared_look_in_english(root: &Path) {
     fs::create_dir_all(root.join("config")).expect("folder");
     fs::write(root.join("config/quvyta.conf"), "language = \"en\"\ntheme = \"monochrome\"\nicons = \"unicode\"\n")
@@ -108,7 +116,7 @@ fn it_opens_while_there_is_no_tools_conf_and_creates_nothing() {
 #[test]
 fn the_before_you_start_step_says_what_qtools_promises_and_back_returns() {
     let root = Root::new();
-    shared_look_in_english(root.path());
+    shared_language_in_english(root.path());
     let mut h = start(root.path(), 80, 30);
     h.click_text("Next");
     let screen = h.screen();
@@ -130,7 +138,7 @@ fn the_before_you_start_step_says_what_qtools_promises_and_back_returns() {
 #[test]
 fn stopping_half_way_leaves_the_folder_exactly_as_it_was() {
     let root = Root::new();
-    shared_look_in_english(root.path());
+    shared_language_in_english(root.path());
     let before = contents(root.path());
     let mut h = start(root.path(), 80, 30);
     h.click_text("Next");
@@ -165,9 +173,32 @@ fn finish_writes_both_files_and_opens_the_list() {
 }
 
 #[test]
-fn start_with_the_defaults_ends_it_from_the_first_step() {
+fn a_shared_look_answered_in_full_opens_on_before_you_start_and_finish_ends_it() {
     let root = Root::new();
     shared_look_in_english(root.path());
+    let before = fs::read_to_string(root.path().join("config/quvyta.conf")).expect("shared file");
+    let mut h = start(root.path(), 80, 30);
+    assert!(h.app().setting_up(), "qtools' own step is still asked:\n{}", h.screen());
+    let screen = h.screen();
+    assert!(screen.contains("Before you start"), "{screen}");
+    assert!(screen.contains("Nothing runs until you confirm"), "{screen}");
+    assert!(!screen.contains("Start with the defaults"), "the appearance step is not asked again:\n{screen}");
+    h.click_text("Finish");
+    h.render();
+    assert!(!h.app().setting_up(), "{}", h.screen());
+    assert_eq!(names(root.path()), ["quvyta.conf", "tools.conf"]);
+    let shared = fs::read_to_string(root.path().join("config/quvyta.conf")).expect("shared file");
+    for line in before.lines() {
+        assert!(shared.contains(line), "`{line}`: the look another app chose stays:\n{shared}");
+    }
+    assert!(h.screen().contains("Mirror list"), "{}", h.screen());
+    assert!(h.is_focused("tweaks"));
+}
+
+#[test]
+fn start_with_the_defaults_ends_it_from_the_first_step() {
+    let root = Root::new();
+    shared_language_in_english(root.path());
     let mut h = start(root.path(), 80, 30);
     h.click_text("Start with the defaults");
     h.render();
@@ -180,7 +211,7 @@ fn start_with_the_defaults_ends_it_from_the_first_step() {
 #[test]
 fn turkish_chosen_in_the_wizard_is_written_and_is_what_the_list_speaks() {
     let root = Root::new();
-    shared_look_in_english(root.path());
+    shared_language_in_english(root.path());
     let mut h = start(root.path(), 80, 30);
     // The language select, opened and answered the way a person does it.
     h.click_text("English");

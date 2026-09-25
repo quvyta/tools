@@ -31,7 +31,7 @@ use std::io;
 use std::process::ExitCode;
 
 use qframe::runtime::Runtime;
-use qframe::storage::Family;
+use qframe::storage::Ecosystem;
 
 /// Runs one `qtools` invocation on this machine: a `--run` or `--revert` line carries out its
 /// tweaks and exits, anything else opens the screen. Both commands, `qtools` and
@@ -79,15 +79,21 @@ pub fn run_on(args: impl IntoIterator<Item = String>, os_release: Option<&str>) 
     // The shared Quvyta folder decides whether the wizard opens and where it writes; the look it
     // resolves is in force from the first frame. The same folder holds the Quvyta-wide
     // update notice, and the Quvyta state folder for qtools remembers when it last asked.
-    let folder = Family::QUVYTA.config_dir();
+    let folder = Ecosystem::QUVYTA.config_dir();
     let opening = app::Opening::new(folder.as_deref(), None, states).with_updates(app::UpdateFolders::here());
-    locales::LOCALES
+    let runtime = locales::LOCALES
         .iter()
         .fold(Runtime::new(opening.tools), |runtime, (file, text)| runtime.locale_source(*file, *text))
         .keymap_source(locales::KEYMAP.0, locales::KEYMAP.1)
         .settings(&opening.settings)
-        .preferences(&opening.preferences)
-        .run()?;
+        .preferences(&opening.preferences);
+    // A member follows the look another Quvyta application changes while qtools is open; the
+    // settings and preferences given above are used as they are and not read twice.
+    let runtime = match folder {
+        Some(folder) => runtime.member_in(Ecosystem::QUVYTA, folder, app::APP),
+        None => runtime,
+    };
+    runtime.run()?;
     Ok(ExitCode::SUCCESS)
 }
 

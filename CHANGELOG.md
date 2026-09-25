@@ -2,6 +2,18 @@
 
 Every release of quvyta-tools, newest first. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/); while the version starts with 0, a minor release may change the command line or the files qtools keeps under `~/.local/state/quvyta-tools/`, and the notes say so when it does.
 
+## 0.1.11 - 2026-09-25
+
+### Changed
+
+- Built on quvyta-framework 0.1.29. qtools opens as a member of the Quvyta ecosystem: when another Quvyta application changes the shared language, theme, icons or reduced motion while qtools is open, qtools follows at once, and an open Settings page shows the new values and writes the next change where its boxes now say.
+- Reduced motion has an "In every Quvyta application" box like the language; checked, it is kept in `~/.config/quvyta/quvyta.conf` for every Quvyta application. The pillar stays qtools' own.
+- The first-start wizard leaves out its appearance page when another Quvyta application has already chosen the language, the theme and the icons, and starts on "Before you start".
+
+### Fixed
+
+- The README's network section listed an `Accept-Encoding: gzip` header the update question never sends. The headers it sends are `Host`, `User-Agent` and `Accept`.
+
 ## 0.1.10 - 2026-09-23
 
 ### Changed

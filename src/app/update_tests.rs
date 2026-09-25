@@ -12,7 +12,7 @@ use std::time::Duration;
 
 use qframe::icons::GlyphMode;
 use qframe::prelude::*;
-use qframe::storage::Family;
+use qframe::storage::Ecosystem;
 
 use super::tests::{Script, every_tweak_off, focus_tweaks, say_yes, wait_for_exit};
 use super::wizard::tests::Root;
@@ -36,6 +36,13 @@ fn shared_look_in_english(root: &Path) {
     fs::create_dir_all(root.join("config")).expect("folder");
     fs::write(root.join("config/quvyta.conf"), "language = \"en\"\ntheme = \"monochrome\"\nicons = \"unicode\"\n")
         .expect("shared file");
+}
+
+/// A shared Quvyta file that holds only English, so the wizard still asks the appearance step
+/// and the screen reads in English whatever the machine's own language is.
+fn shared_language_in_english(root: &Path) {
+    fs::create_dir_all(root.join("config")).expect("folder");
+    fs::write(root.join("config/quvyta.conf"), "language = \"en\"\n").expect("shared file");
 }
 
 /// qtools has been set up before: no wizard.
@@ -85,7 +92,7 @@ fn a_newer_version_is_said_in_the_shared_quvyta_notice_and_the_same_or_an_older_
 fn with_the_quvyta_wide_switch_off_nothing_is_asked() {
     let root = Root::new();
     set_up_before(root.path());
-    Family::QUVYTA.set_update_notice_in(&root.path().join("config"), false).expect("saved");
+    Ecosystem::QUVYTA.set_update_notice_in(&root.path().join("config"), false).expect("saved");
     let mut h = start(root.path());
     assert!(h.update_checks().is_empty(), "off asks nothing at all");
     h.set_latest_version(Some("9.9.9")).advance(MOMENT);
@@ -111,7 +118,7 @@ fn the_unsupported_notice_asks_nothing() {
 #[test]
 fn nothing_is_asked_while_the_wizard_is_open_and_once_after_finish() {
     let root = Root::new();
-    shared_look_in_english(root.path());
+    shared_language_in_english(root.path());
     let mut h = start(root.path());
     assert!(h.app().setting_up(), "{}", h.screen());
     assert!(h.update_checks().is_empty(), "the wizard is not interrupted by the question");
@@ -129,7 +136,7 @@ fn nothing_is_asked_while_the_wizard_is_open_and_once_after_finish() {
 #[test]
 fn start_with_the_defaults_asks_once_it_is_over() {
     let root = Root::new();
-    shared_look_in_english(root.path());
+    shared_language_in_english(root.path());
     let mut h = start(root.path());
     h.click_text("Start with the defaults");
     h.render();
@@ -143,7 +150,7 @@ fn unchecking_the_box_turns_the_quvyta_wide_switch_off_on_finish_and_asks_nothin
     shared_look_in_english(root.path());
     let before = fs::read_to_string(root.path().join("config/quvyta.conf")).expect("shared file");
     let mut h = start(root.path());
-    h.click_text("Next");
+    assert!(h.screen().contains(BOX), "a shared look in full opens on qtools' own step:\n{}", h.screen());
     h.click_text(BOX);
     assert_eq!(
         fs::read_to_string(root.path().join("config/quvyta.conf")).expect("shared file"),
@@ -156,7 +163,7 @@ fn unchecking_the_box_turns_the_quvyta_wide_switch_off_on_finish_and_asks_nothin
     h.advance(MOMENT);
     assert!(!h.app().setting_up(), "{}", h.screen());
     let config = root.path().join("config");
-    assert!(!Family::QUVYTA.update_notice_in(&config), "the shared file says off");
+    assert!(!Ecosystem::QUVYTA.update_notice_in(&config), "the shared file says off");
     let shared = fs::read_to_string(config.join("quvyta.conf")).expect("shared file");
     assert!(shared.contains("update-notice = false"), "{shared}");
     assert!(h.update_checks().is_empty(), "the person said no: nothing is asked");
@@ -173,12 +180,12 @@ fn leaving_the_box_on_keeps_the_switch_on() {
     let root = Root::new();
     shared_look_in_english(root.path());
     let mut h = start(root.path());
-    h.click_text("Next");
+    assert!(h.screen().contains(BOX), "a shared look in full opens on qtools' own step:\n{}", h.screen());
     h.click_text("Finish");
     h.render();
     h.advance(MOMENT);
     let config = root.path().join("config");
-    assert!(Family::QUVYTA.update_notice_in(&config));
+    assert!(Ecosystem::QUVYTA.update_notice_in(&config));
     let shared = fs::read_to_string(config.join("quvyta.conf")).expect("shared file");
     assert!(!shared.contains("update-notice = false"), "{shared}");
     assert_eq!(h.update_checks().len(), 1);
@@ -190,27 +197,27 @@ fn the_box_starts_as_the_quvyta_wide_switch_was_left() {
     let root = Root::new();
     shared_look_in_english(root.path());
     let config = root.path().join("config");
-    Family::QUVYTA.set_update_notice_in(&config, false).expect("saved");
+    Ecosystem::QUVYTA.set_update_notice_in(&config, false).expect("saved");
     let mut h = start(root.path());
-    h.click_text("Next");
+    assert!(h.screen().contains(BOX), "a shared look in full opens on qtools' own step:\n{}", h.screen());
     h.click_text("Finish");
     h.render();
     h.advance(MOMENT);
-    assert!(!Family::QUVYTA.update_notice_in(&config));
+    assert!(!Ecosystem::QUVYTA.update_notice_in(&config));
     assert!(h.update_checks().is_empty());
 
     // Checked by hand, it turns the Quvyta-wide switch back on, and the question follows.
     let root = Root::new();
     shared_look_in_english(root.path());
     let config = root.path().join("config");
-    Family::QUVYTA.set_update_notice_in(&config, false).expect("saved");
+    Ecosystem::QUVYTA.set_update_notice_in(&config, false).expect("saved");
     let mut h = start(root.path());
-    h.click_text("Next");
+    assert!(h.screen().contains(BOX), "a shared look in full opens on qtools' own step:\n{}", h.screen());
     h.click_text(BOX);
     h.click_text("Finish");
     h.render();
     h.advance(MOMENT);
-    assert!(Family::QUVYTA.update_notice_in(&config), "turned back on");
+    assert!(Ecosystem::QUVYTA.update_notice_in(&config), "turned back on");
     assert_eq!(h.update_checks().len(), 1);
 }
 

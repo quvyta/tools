@@ -19,7 +19,7 @@ use std::path::{Path, PathBuf};
 use qframe::icons::nerd_font::Install;
 use qframe::prelude::*;
 use qframe::runtime::{Update, UpdateCheck};
-use qframe::storage::{Family, Preferences, Settings};
+use qframe::storage::{Ecosystem, Preferences, Settings};
 use qframe::widgets::{
     Appearance, AppearanceChange, Badge, Button, Closed, List, ListItem, Menu, MenuGroup, MenuItem, ScrollView, Setup,
     SetupMsg, Side, SidePanel, Tabs, Terminal, TerminalEvent, Toast, ToastKind,
@@ -132,7 +132,7 @@ impl Tools {
         let count = states.len();
         // A folder that is never created, so resolving reads no one's files and writes nothing.
         let nowhere = std::env::temp_dir().join("quvyta-tools-no-config");
-        let detected = Family::QUVYTA.preferences_without_saving_in(&nowhere, APP, &crate::locales::i18n());
+        let detected = Ecosystem::QUVYTA.preferences_without_saving_in(&nowhere, APP, &crate::locales::i18n());
         Self {
             group: Group::Packages,
             settings_open: false,
@@ -163,7 +163,7 @@ impl Tools {
     /// folders of their own, so nothing they do reads or turns off the person's own switch.
     #[must_use]
     pub fn updates(mut self, folders: Option<UpdateFolders>) -> Self {
-        self.update_notice = folders.as_ref().is_none_or(|folders| Family::QUVYTA.update_notice_in(&folders.config));
+        self.update_notice = folders.as_ref().is_none_or(|folders| Ecosystem::QUVYTA.update_notice_in(&folders.config));
         self.updates = folders;
         self
     }
@@ -183,12 +183,17 @@ impl Tools {
     /// asks nothing at all, whoever runs the question.
     fn ask_for_update(&self) -> Command<Msg> {
         let Some(folders) = &self.updates else { return Command::none() };
-        if !Family::QUVYTA.update_notice_in(&folders.config) {
+        if !Ecosystem::QUVYTA.update_notice_in(&folders.config) {
             return Command::none();
         }
-        let check =
-            UpdateCheck::new(Family::QUVYTA, APP, env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"), Msg::NewVersion)
-                .in_folders(folders.config.clone(), folders.state.clone());
+        let check = UpdateCheck::new(
+            Ecosystem::QUVYTA,
+            APP,
+            env!("CARGO_PKG_NAME"),
+            env!("CARGO_PKG_VERSION"),
+            Msg::NewVersion,
+        )
+        .in_folders(folders.config.clone(), folders.state.clone());
         Command::check_for_update(check)
     }
 
@@ -197,12 +202,12 @@ impl Tools {
     /// finishes, so nothing is written before Finish.
     fn store_update_notice(&self) -> Command<Msg> {
         let Some(folders) = &self.updates else { return Command::none() };
-        if Family::QUVYTA.update_notice_in(&folders.config) == self.update_notice {
+        if Ecosystem::QUVYTA.update_notice_in(&folders.config) == self.update_notice {
             return self.ask_for_update();
         }
         let (folder, on) = (folders.config.clone(), self.update_notice);
         Command::perform(move || {
-            Msg::NoticeStored(Family::QUVYTA.set_update_notice_in(&folder, on).map_err(|error| error.to_string()))
+            Msg::NoticeStored(Ecosystem::QUVYTA.set_update_notice_in(&folder, on).map_err(|error| error.to_string()))
         })
     }
 
@@ -237,11 +242,11 @@ impl Opening {
     /// saving, where resolving them the usual way would make `quvyta.conf` before anything was
     /// chosen.
     pub fn new(folder: Option<&Path>, fonts: Option<&Path>, states: Vec<TweakState>) -> Self {
-        let family = Family::QUVYTA;
+        let ecosystem = Ecosystem::QUVYTA;
         let i18n = crate::locales::i18n();
         let setup = folder
             .map(|folder| {
-                let setup = Setup::new_in(folder, family, APP, &i18n, Msg::Setup).on_finish(Msg::SetUp);
+                let setup = Setup::new_in(folder, ecosystem, APP, &i18n, Msg::Setup).on_finish(Msg::SetUp);
                 match fonts {
                     Some(fonts) => setup
                         .install(Install::new().target(fonts.join("QuvytaNerdFont")).register(false))
@@ -252,12 +257,12 @@ impl Opening {
             .filter(Setup::needed);
         let preferences = match (&setup, folder) {
             (Some(setup), _) => setup.preferences().clone(),
-            (None, Some(folder)) => family.preferences_in(folder, APP, &i18n),
-            (None, None) => family.preferences(APP, &i18n),
+            (None, Some(folder)) => ecosystem.preferences_in(folder, APP, &i18n),
+            (None, None) => ecosystem.preferences(APP, &i18n),
         };
         let settings = match folder {
-            Some(folder) => Settings::open(folder.join(format!("{APP}.conf"))).member_of(&family),
-            None => Settings::load_member(&family, APP),
+            Some(folder) => Settings::open(folder.join(format!("{APP}.conf"))).member_of(&ecosystem),
+            None => Settings::load_member(&ecosystem, APP),
         };
         let mut tools = Tools::new(states);
         tools.setup = setup;
@@ -297,8 +302,8 @@ impl UpdateFolders {
     /// switch or the last question and so nothing is asked.
     #[must_use]
     pub fn here() -> Option<Self> {
-        let family = Family::QUVYTA;
-        family.config_dir().zip(family.state_dir(APP)).map(|(config, state)| Self { config, state })
+        let ecosystem = Ecosystem::QUVYTA;
+        ecosystem.config_dir().zip(ecosystem.state_dir(APP)).map(|(config, state)| Self { config, state })
     }
 }
 
@@ -357,6 +362,10 @@ pub enum Msg {
     NewVersion(Update),
     /// A change on the Settings page's rows.
     Appearance(AppearanceChange),
+    /// Another Quvyta application changed the shared language, theme, icons or reduced motion;
+    /// the runtime has already switched the screen, the Settings page still has to show it and
+    /// write the next pick where its boxes now say.
+    Preferences(Preferences),
     /// The Settings page's update switch was written into `folder`, or why not.
     NoticeSaved {
         /// What it was turned to.
@@ -370,6 +379,10 @@ pub enum Msg {
 
 impl App for Tools {
     type Msg = Msg;
+
+    fn preferences(&self, preferences: &Preferences) -> Option<Msg> {
+        Some(Msg::Preferences(preferences.clone()))
+    }
 
     fn update(&mut self, msg: Msg) -> Command<Msg> {
         match msg {
@@ -423,6 +436,7 @@ impl App for Tools {
             // The framework's rows write their own files, key by key, and keep the settings qtools
             // holds in step, so nothing more is saved here.
             Msg::Appearance(change) => return self.appearance.update(change, &mut self.settings),
+            Msg::Preferences(preferences) => self.appearance.refresh(preferences),
             Msg::NoticeSaved { on, folder, result } => return self.notice_saved(on, &folder, result),
         }
         Command::none()

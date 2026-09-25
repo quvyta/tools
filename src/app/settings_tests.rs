@@ -13,7 +13,7 @@ use std::time::Duration;
 
 use qframe::icons::GlyphMode;
 use qframe::prelude::*;
-use qframe::storage::Family;
+use qframe::storage::Ecosystem;
 
 use super::tests::focus_tweaks;
 use super::wizard::tests::Root;
@@ -213,7 +213,7 @@ fn the_update_notice_row_turns_the_quvyta_wide_switch_off_and_on_again() {
     h.click_text(NOTICE);
     h.press("space");
     h.advance(MOMENT);
-    assert!(!Family::QUVYTA.update_notice_in(&config), "the shared file says off");
+    assert!(!Ecosystem::QUVYTA.update_notice_in(&config), "the shared file says off");
     assert!(read(root.path(), "quvyta.conf").contains("update-notice = false"));
     assert!(!read(root.path(), "tools.conf").contains("update-notice"), "the switch is Quvyta-wide");
     let next = start(root.path(), 100, 40);
@@ -221,7 +221,7 @@ fn the_update_notice_row_turns_the_quvyta_wide_switch_off_and_on_again() {
 
     h.press("space");
     h.advance(MOMENT);
-    assert!(Family::QUVYTA.update_notice_in(&config), "on again");
+    assert!(Ecosystem::QUVYTA.update_notice_in(&config), "on again");
     let next = start(root.path(), 100, 40);
     assert_eq!(next.update_checks().len(), 1, "and the next start asks");
 }
@@ -262,11 +262,11 @@ fn a_notice_switch_that_cannot_be_written_goes_back_on() {
     let screen = h.screen();
     fs::set_permissions(&config, fs::Permissions::from_mode(0o755)).expect("writable again");
     assert!(screen.contains("could not be saved"), "{screen}");
-    assert!(Family::QUVYTA.update_notice_in(&config), "the shared file still says on");
+    assert!(Ecosystem::QUVYTA.update_notice_in(&config), "the shared file still says on");
     // Put back on, the next press turns it off rather than on again.
     h.press("space");
     h.advance(MOMENT);
-    assert!(!Family::QUVYTA.update_notice_in(&config), "the switch was back on, so this turned it off");
+    assert!(!Ecosystem::QUVYTA.update_notice_in(&config), "the switch was back on, so this turned it off");
 }
 
 #[test]
@@ -302,15 +302,49 @@ fn after_the_wizard_the_page_carries_on_from_what_it_chose() {
     .expect("shared file");
     let mut h = start(root.path(), 100, 40);
     assert!(h.app().setting_up());
-    h.click_text("Next");
+    // The shared look is answered in full, so the wizard opens on qtools' own step.
     h.click_text(NOTICE);
     h.click_text("Finish");
     h.advance(MOMENT);
     let config = root.path().join("config");
-    assert!(!Family::QUVYTA.update_notice_in(&config), "the wizard turned it off");
+    assert!(!Ecosystem::QUVYTA.update_notice_in(&config), "the wizard turned it off");
     h.click_text("Settings");
     h.click_text(NOTICE);
     h.press("space");
     h.advance(MOMENT);
-    assert!(Family::QUVYTA.update_notice_in(&config), "the page knew it was off, so space turned it on");
+    assert!(Ecosystem::QUVYTA.update_notice_in(&config), "the page knew it was off, so space turned it on");
+}
+
+/// The Settings entry of the sidebar in a member harness. `Harness::member_in` starts from the
+/// framework's own language files, so qtools' strings show as their keys; the click still lands
+/// where a person's would.
+const SETTINGS_ENTRY: &str = "⟦settings.title⟧";
+
+#[test]
+fn a_theme_another_quvyta_application_gives_qtools_while_it_is_open_is_where_the_next_pick_goes() {
+    use qframe::storage::{Scope, Shared};
+    let root = Root::new();
+    set_up_in(root.path(), "en");
+    let folder = root.path().join("config");
+    let states = vec![TweakState::Off; catalog::all().len()];
+    let opening = Opening::new(Some(&folder), Some(&root.path().join("fonts")), states);
+    let mut h = Harness::member_in(opening.tools, Ecosystem::QUVYTA, &folder, super::APP, 100, 40);
+    h.set_glyph_mode(GlyphMode::Unicode).set_reduced_motion(true);
+    h.click_text(SETTINGS_ENTRY);
+    assert!(h.screen().contains("Monochrome"), "{}", h.screen());
+    // Another member, the launcher say, gives qtools a theme of its own in qtools' file.
+    Ecosystem::QUVYTA.set_in(&folder, super::APP, Shared::Theme, "iris", Scope::App).expect("saved");
+    h.poll_preferences();
+    h.advance(MOMENT);
+    assert_eq!(h.env().theme().id(), "iris", "the screen follows");
+    assert!(h.screen().contains("Iris"), "and the page says so:\n{}", h.screen());
+    // qtools keeps its own theme now, so the next one picked here stays with qtools.
+    h.click_text("Iris");
+    h.click_text("Nordic");
+    h.advance(MOMENT);
+    assert_eq!(h.env().theme().id(), "nordic", "{}", h.screen());
+    let own = read(root.path(), "tools.conf");
+    assert!(own.contains("theme = \"nordic\""), "{own}");
+    let shared = read(root.path(), "quvyta.conf");
+    assert!(shared.contains("theme = \"monochrome\""), "the other applications keep theirs:\n{shared}");
 }

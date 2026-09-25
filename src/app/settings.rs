@@ -16,7 +16,7 @@
 use std::path::Path;
 
 use qframe::prelude::*;
-use qframe::storage::{Family, Preferences};
+use qframe::storage::{Ecosystem, Preferences};
 use qframe::widgets::{Appearance, ScrollView, SettingRow, SettingsList, Switch, Toast};
 
 use super::{APP, Msg, Tools};
@@ -40,7 +40,7 @@ const SCROLLBAR: u16 = 2;
 /// The page's appearance rows over `preferences`, writing each change into the shared Quvyta folder
 /// `folder`. Without a folder there is nowhere to keep a change: it lasts until qtools quits.
 pub(super) fn appearance(preferences: Preferences, folder: Option<&Path>) -> Appearance {
-    let appearance = Appearance::new(Family::QUVYTA, APP, preferences);
+    let appearance = Appearance::new(Ecosystem::QUVYTA, APP, preferences);
     match folder {
         Some(folder) => appearance.in_folder(folder),
         None => appearance.without_saving(),
@@ -59,7 +59,7 @@ impl Tools {
             return Command::none();
         };
         Command::perform(move || {
-            let result = Family::QUVYTA.set_update_notice_in(&folder, on).map_err(|error| error.to_string());
+            let result = Ecosystem::QUVYTA.set_update_notice_in(&folder, on).map_err(|error| error.to_string());
             Msg::NoticeSaved { on, folder, result }
         })
     }
@@ -86,7 +86,7 @@ impl Tools {
                     // The framework's own row writes the switch as it is turned; this one is
                     // drawn from the same parts and words, and written in the background.
                     if self.updates.is_some() {
-                        let text = t!("quvyta.appearance.updates-text", family = Family::QUVYTA.title());
+                        let text = t!("quvyta.appearance.updates-text", family = Ecosystem::QUVYTA.title());
                         let on = self.update_notice;
                         list.row(SettingRow::new(t!("quvyta.appearance.updates")).description(text), |ui| {
                             ui.add(Switch::new(on).on_toggle(Msg::ToggleUpdateNotice));

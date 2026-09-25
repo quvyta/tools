@@ -9,7 +9,7 @@
 //! application and which the Settings page offers again afterwards.
 
 use qframe::prelude::*;
-use qframe::storage::Family;
+use qframe::storage::Ecosystem;
 use qframe::widgets::{Checkbox, ScrollView, Setup, SetupWizard};
 
 use super::{Msg, Tools};
@@ -133,7 +133,7 @@ impl Tools {
 
 /// What the update box asks and what it never sends, in the Quvyta ecosystem's own words.
 fn update_text() -> String {
-    t!("quvyta.appearance.updates-text", family = Family::QUVYTA.title())
+    t!("quvyta.appearance.updates-text", family = Ecosystem::QUVYTA.title())
 }
 
 /// The name over the wizard, with the tagline when there is room for it whole: cut short it
