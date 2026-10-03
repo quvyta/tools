@@ -21,7 +21,7 @@ summary = "パッケージを並列でダウンロードし、カラー表示と
 
 [tweak.multilib]
 title = "multilib リポジトリ"
-summary = "Steam や一部のドライバーが必要とする 32 ビットのリポジトリを追加します。次回の完全アップグレード（`pacman -Syu`）の後に使えるようになります。"
+summary = "Steam や一部のドライバーに必要な 32 ビットリポジトリを追加します。次回システム全体を更新した後に、そのパッケージをインストールできます。"
 
 [tweak.aur-helper]
 title = "AUR ヘルパー"
@@ -43,9 +43,13 @@ summary = "システムログが使えるディスク容量を専用の drop-in 
 title = "時刻同期"
 summary = "systemd 付属の時刻サービスで時計を正確に保ちます。"
 
+[tweak.microcode]
+title = "プロセッサーのマイクロコード"
+summary = "お使いのプロセッサーのマイクロコードをインストールし、mkinitcpio の `microcode` フックを initramfs に追加します。ブートローダーは変更しません。次回の起動時に読み込まれ、再ビルドには約 1 分かかります。"
+
 [tweak.zram-swap]
 title = "RAM 上の圧縮スワップ"
-summary = "メモリの半分の大きさの圧縮スワップ領域を RAM 上に追加します。既存のスワップはそのまま残り、これはその上乗せです。次回の起動か zram サービスの再起動で有効になります。"
+summary = "メモリの半分、最大 8 GB の圧縮スワップを RAM 上に追加します。既存のスワップはそのまま残ります。次回の起動時か、zram サービスの次回起動時に有効になります。"
 
 [tweak.bluetooth]
 title = "Bluetooth"
@@ -57,15 +61,15 @@ summary = "tlp をインストールし、既定の設定で有効にします�
 
 [tweak.nvidia-wayland]
 title = "NVIDIA と Wayland"
-summary = "Wayland セッションを滑らかに動かすために必要な、NVIDIA のカーネルモード設定とサスペンド用サービスを有効にします。次回の起動で有効になります。nvidia モジュールが initramfs に組み込まれている場合は、`mkinitcpio -P` も別途実行してください。"
+summary = "スムーズな Wayland セッションに必要な NVIDIA のカーネルモード設定とスリープ関連サービスを有効にし、設定が initramfs にも入るよう再ビルドします。次回の起動時に有効になり、再ビルドには約 1 分かかります。"
 
 [tweak.firewall]
 title = "ファイアウォール"
-summary = "ufw をインストールして有効にします。外部からの接続は遮断し、外部への接続は許可します。qtools はポートを一切開けないため、SSH など外部から接続できる必要があるサービスには、それぞれ ufw allow ルールが必要です。"
+summary = "ufw をインストールして有効にします。受信接続はブロックされ、送信接続は許可されます。qtools は SSH を含め何も開放しないため、SSH で接続しているマシンは新しい接続を受け付けなくなります。マシンの前で適用してください。"
 
 [tweak.ssh-hardening]
 title = "SSH の強化"
-summary = "専用の drop-in ファイルで、SSH のパスワードログインと root ログインを無効にします。次回の sshd 再起動で有効になり、以降は鍵でしかログインできません。リモートで使うマシンでは、先に鍵が設置済みか確認してください。"
+summary = "専用の設定ファイルで SSH のパスワードログインと root ログインを無効にします。sshd は次回起動時（たとえば次回のシステム起動時）にこれを読み込み、それ以降は鍵でしかログインできません。リモートで接続するマシンでは、鍵がすでに配置されていることを確認してください。"
 
 [tweak.qt-gtk-match]
 title = "Qt を GTK に合わせる"
@@ -89,13 +93,19 @@ summary = "Noto フォントファミリーをシステム全体のサンセリ�
 "other-time-service" = "別の時刻サービスが時計を管理しています"
 
 "no-openssh" = "openssh がインストールされていません"
+"no-ufw" = "ファイアウォール（ufw）がインストールされていません"
 "no-graphical-session" = "このマシンにはグラフィカルセッションがありません"
+
+"no-cpu-microcode" = "このプロセッサー用のマイクロコードパッケージはありません"
+"no-mkinitcpio" = "このマシンには /etc/mkinitcpio.conf がありません"
+"mkinitcpio-too-old" = "この mkinitcpio には microcode フックがありません"
 
 "no-bluetooth" = "このマシンに Bluetooth コントローラーはありません"
 "no-battery" = "このマシンにバッテリーはありません"
 "power-profiles-daemon" = "power-profiles-daemon が既に電源を管理しています"
 "no-nvidia" = "このマシンに NVIDIA のグラフィックカードはありません"
 "no-nvidia-driver" = "NVIDIA ドライバーがインストールされていません"
+"ufw-rules-unreadable" = "ファイアウォールのルール（/etc/ufw/user.rules）を読み取れません"
 
 [header]
 tagline = "Arch Linux のおすすめ設定"
@@ -105,13 +115,16 @@ applied = "適用済み"
 off = "オフ"
 half = "一部"
 changed = "変更あり"
+unknown = "不明"
 
 [detail]
 touches = "変更対象"
 
 [touch]
 package = "パッケージ"
+"needed-package" = "パッケージ、元に戻しても残ります"
 service = "サービス"
+unit = "サービス、必要なときに実行"
 command = "コマンド"
 
 [hints]
@@ -120,16 +133,40 @@ toggle = "選択"
 apply = "適用"
 change = "変更"
 
+# The command palette: one row for what a key or a click does from where the screen stands.
+# {tweak} is the chosen item's title.
+[palette]
+apply = "適用：{tweak}"
+mark = "選択：{tweak}"
+unmark = "選択を解除：{tweak}"
+undo = "元に戻す：{tweak}"
+options = "オプション: {tweak}"
+"show-detail" = "詳細パネルを表示"
+"hide-detail" = "詳細パネルを隠す"
+quit = "終了"
+
 [confirm]
 "apply.title" = "適用しますか？"
 apply = "適用"
 "revert.title" = "元に戻しますか？"
 revert = "元に戻す"
 cancel = "キャンセル"
+backups = "一覧のファイルのうち既にあるものは、元に戻せるよう先に {folder} へコピーされます。"
 "password-steps" = { other = "{n} 個の手順でパスワードを求められます。" }
 
 [revert]
 button = "元に戻す"
+
+# The options form of a tweak that has options. {min} and {max} are the range its number allows.
+[form]
+title = "オプション"
+button = "オプション"
+save = "保存"
+cancel = "キャンセル"
+"country-bad" = "2～60 文字で入力してください。スペース、カンマ、ハイフンも使えます。"
+"count-bad" = "{min} から {max} までの数値を入力してください。"
+"helper-bad" = "paru か yay を選んでください。"
+"not-saved" = "値を保存できなかったため、使用されませんでした"
 
 [run]
 applying = "適用中：{tweak}"
@@ -139,17 +176,21 @@ done = "完了"
 failed = "失敗しました"
 "failed-body" = "原因は出力に表示されています。失敗より前に行われた変更は元に戻せます。"
 
-# The Settings page: the shared Quvyta appearance rows and its update notice.
+# The Settings page: the shared Quvyta appearance rows, its update notice and qtools' own
+# "ask for the password once" switch.
 [settings]
 title = "設定"
 "not-saved" = "設定を保存できなかったため、元に戻しました"
+"password-once" = "qtools を開いている間はパスワードを一度だけ尋ねる"
+"password-once-text" = "パスワードがファイルに書き込まれることはなく、権限は qtools を閉じると終わります。"
 
 [keys]
 revert = "元に戻す"
+options = "オプション"
 "close-run" = "閉じる"
 
 [cli]
-usage = "使い方：qtools, qtools --run <tweak>..., qtools --revert <tweak>..."
+usage = "使い方：qtools, qtools --run <tweak>..., qtools --revert <tweak>..., qtools --help, qtools --version"
 "unknown-argument" = "不明な引数：{argument}"
 "unknown-tweak" = "{id} という設定はありません。"
 applying = "適用中：{tweak}"
@@ -158,6 +199,39 @@ done = "完了"
 failed = "失敗：{reason}"
 "step-failed" = "手順 {step} が失敗しました：{reason}"
 stopped = "残りの設定は実行しませんでした。"
+
+# What stopped a step or an undo. {file}, {backup} and {folder} are paths; {found} and {said}
+# are the machine's own text, shown as it is.
+[problem]
+"file-missing" = "{file} がありません。"
+"section-missing" = "{file} に [{section}] セクションがありません。"
+"option-differs" = "{file} ではすでに {key} が {found} に設定されています。"
+"file-differs" = "{file} の内容が異なります。{line} 行目: {found}"
+"file-ends" = "{file} の内容が異なります。{line} 行目より前でファイルが終わっています。"
+"list-not-set" = "{key} は {file} にも {folder} にも設定されていません。"
+"list-unreadable" = "{key} は {file} で設定されていますが、今そのファイルを読めません。"
+"list-not-understood" = "{file} は qtools が変更しない書き方でリストを設定しています: {found}"
+"list-not-in-file" = "{file} はもうリストを設定していません。"
+"changed-after-write" = "{file} は qtools が書き込んだ後に変更されています。そのままにして、何も元に戻していません。"
+"backup-missing" = "{file} のバックアップがありません（{backup}）。ファイルはそのままにして、何も元に戻していません。"
+"nothing-recorded" = "これは qtools が行ったものではないため、元に戻すものはありません。"
+"record-does-not-match" = "ステップ {step} の qtools の記録がこの項目と合わなくなりました。何も元に戻していません。"
+"not-recorded" = "変更を記録できなかったため、元に戻しました: {why}"
+"not-recorded-left" = "変更を記録することも元に戻すこともできず、システムに残っています: {why}"
+"write-refused" = "{file} に書き込めませんでした。"
+"write-refused-said" = "{file} に書き込めませんでした: {said}"
+"root-to-read" = "root だけが、これが行われているかどうかを読み取れます。適用するときは、qtools がパスワード入力後に先に確認し、すでに存在しているものはそのままにします。"
+"unreadable" = "qtools はこの状態を読み取れませんでした：{why}"
+# The session that holds one terminal for a whole qtools: the process that carries the runs out,
+# and the screen's side of it. {channel} is where the control channel would be, {reason} what the
+# machine said about it.
+[session]
+"no-folder" = "このマシンにはセッションの制御チャンネルを置く場所がないため、実行のたびにパスワードを尋ねます。"
+"unknown-request" = "セッションに別のことが求められ、何もしませんでした。"
+"channel-failed" = "セッションは制御チャンネル {channel} を開けませんでした: {reason}"
+"channel-not-made" = "制御チャンネルを作れなかったため、この実行には専用の端末が使われます: {reason}"
+"not-asked" = "qtools の間ずっと一つの端末を保つセッションが終了したため、この実行には専用の端末が使われます: {reason}"
+"gone" = "qtools の間ずっと一つの端末を保つセッションが終了したため、この実行は行われませんでした。"
 
 [unsupported]
 title = "現在は Arch Linux のみ対応"
@@ -169,3 +243,8 @@ intro = "qtools はシステムの設定を変更します。そのため、3 �
 touches = "すべての項目は、実行前に何を変更するかを表示します。"
 confirm = "確認するまで何も実行されません。実行は画面上のターミナルで行われ、パスワードは自分で入力します。"
 undo = "適用した項目は {key} で元に戻せます。qtools が {folder} に保存するバックアップを使います。"
+"undo-unbound" = "適用した項目は詳細から元に戻せます。qtools は {folder} にバックアップを保存しています。"
+
+[tweak.firewall-ssh]
+title = "ファイアウォール越しの SSH"
+summary = "ポート 22 で SSH を許可するファイアウォールルールを 1 つ追加します。ファイアウォールを有効にしたまま、このマシンにリモートから接続できるようにします。自分で作成したルールはそのまま残し、元に戻す場合は qtools が追加したルールのみを削除します。"

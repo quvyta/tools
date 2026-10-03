@@ -21,7 +21,7 @@ summary = "并行下载软件包，并启用彩色输出和完整的版本列表
 
 [tweak.multilib]
 title = "multilib 仓库"
-summary = "添加 Steam 和部分驱动所需的 32 位仓库。下次完整升级（`pacman -Syu`）后即可使用。"
+summary = "添加 Steam 和部分驱动所需的 32 位软件仓库。在你下一次完整更新系统后即可安装其中的软件包。"
 
 [tweak.aur-helper]
 title = "AUR 助手"
@@ -43,9 +43,13 @@ summary = "通过单独的 drop-in 配置限制系统日志占用的磁盘空间
 title = "时间同步"
 summary = "用 systemd 自带的时间服务让时钟保持准确。"
 
+[tweak.microcode]
+title = "处理器微码"
+summary = "安装你处理器的微码，并在 initramfs 中添加 mkinitcpio 的 `microcode` 钩子，因此不会改动你的引导程序。下次开机时加载；重建大约需要一分钟。"
+
 [tweak.zram-swap]
 title = "内存中的压缩交换分区"
-summary = "在内存中添加一个压缩交换设备，大小为你内存的一半，与已有的交换空间并存而不取代它。下次开机或 zram 服务重新启动后生效。"
+summary = "在内存中添加一个压缩交换空间，大小为内存的一半，最多 8 GB，并与你已有的交换空间并存。下次开机或下次启动 zram 服务时生效。"
 
 [tweak.bluetooth]
 title = "蓝牙"
@@ -57,15 +61,15 @@ summary = "安装 tlp 并以其默认设置启用。如果 power-profiles-daemon
 
 [tweak.nvidia-wayland]
 title = "NVIDIA 与 Wayland"
-summary = "启用 NVIDIA 的内核 modesetting 以及它的挂起服务，这是 Wayland 会话顺畅运行所需要的。下次开机后生效；如果 nvidia 模块已内置到 initramfs 中，还需要额外运行 `mkinitcpio -P`。"
+summary = "启用 NVIDIA 的内核模式设置及其休眠相关服务，让 Wayland 会话更顺畅，并重建 initramfs，让这项设置也进入其中。下次开机时生效；重建大约需要一分钟。"
 
 [tweak.firewall]
 title = "防火墙"
-summary = "安装并启用 ufw：拦截所有传入连接，放行传出连接。qtools 不会开放任何端口，SSH 以及其他需要从外部访问的服务都要自行添加 ufw allow 规则。"
+summary = "安装并启用 ufw：阻止传入连接，允许传出连接。qtools 不会开放任何端口，包括 SSH；你通过 SSH 连接的机器将不再接受新连接，所以请在机器本地应用此项。"
 
 [tweak.ssh-hardening]
 title = "SSH 加固"
-summary = "通过单独的 drop-in 配置禁止 SSH 密码登录和 root 登录。下次重启 sshd 后生效，之后只能用密钥登录；如果是远程连接的机器，请先确认你的密钥已经就位。"
+summary = "用单独的配置文件关闭 SSH 的密码登录和 root 登录。sshd 会在下次启动时读取它，例如下次开机时；之后只能用密钥登录，所以在你远程访问的机器上，请先确认你的密钥已经就位。"
 
 [tweak.qt-gtk-match]
 title = "Qt 跟随 GTK"
@@ -89,13 +93,19 @@ summary = "将 Noto 字体家族设为系统默认的无衬线、衬线和等宽
 "other-time-service" = "时钟已由其他时间服务管理"
 
 "no-openssh" = "未安装 openssh"
+"no-ufw" = "防火墙（ufw）未安装"
 "no-graphical-session" = "这台机器没有图形会话"
+
+"no-cpu-microcode" = "此处理器没有对应的微码软件包"
+"no-mkinitcpio" = "此计算机上没有 /etc/mkinitcpio.conf"
+"mkinitcpio-too-old" = "此 mkinitcpio 没有 microcode 钩子"
 
 "no-bluetooth" = "这台机器没有蓝牙控制器"
 "no-battery" = "这台机器没有电池"
 "power-profiles-daemon" = "电源已由 power-profiles-daemon 管理"
 "no-nvidia" = "这台机器没有 NVIDIA 显卡"
 "no-nvidia-driver" = "未安装 NVIDIA 驱动"
+"ufw-rules-unreadable" = "无法读取防火墙规则（/etc/ufw/user.rules）"
 
 [header]
 tagline = "Arch Linux 推荐设置"
@@ -105,13 +115,16 @@ applied = "已应用"
 off = "未启用"
 half = "部分"
 changed = "已改动"
+unknown = "未知"
 
 [detail]
 touches = "涉及"
 
 [touch]
 package = "软件包"
+"needed-package" = "软件包，撤销时保留"
 service = "服务"
+unit = "服务，需要时运行"
 command = "命令"
 
 [hints]
@@ -120,16 +133,40 @@ toggle = "勾选"
 apply = "应用"
 change = "更改"
 
+# The command palette: one row for what a key or a click does from where the screen stands.
+# {tweak} is the chosen item's title.
+[palette]
+apply = "应用：{tweak}"
+mark = "勾选：{tweak}"
+unmark = "取消勾选：{tweak}"
+undo = "撤销：{tweak}"
+options = "选项：{tweak}"
+"show-detail" = "显示详情面板"
+"hide-detail" = "隐藏详情面板"
+quit = "退出"
+
 [confirm]
 "apply.title" = "要应用吗？"
 apply = "应用"
 "revert.title" = "要撤销吗？"
 revert = "撤销"
 cancel = "取消"
+backups = "列出的文件如已存在，会先复制到 {folder}，以便撤销。"
 "password-steps" = { other = "有 {n} 个步骤需要输入密码。" }
 
 [revert]
 button = "撤销"
+
+# The options form of a tweak that has options. {min} and {max} are the range its number allows.
+[form]
+title = "选项"
+button = "选项"
+save = "保存"
+cancel = "取消"
+"country-bad" = "请输入 2 到 60 个字母，也可用空格、逗号或连字符。"
+"count-bad" = "请输入 {min} 到 {max} 之间的数字。"
+"helper-bad" = "请选择 paru 或 yay。"
+"not-saved" = "这些值未能保存，因此没有使用"
 
 [run]
 applying = "正在应用：{tweak}"
@@ -139,17 +176,21 @@ done = "完成"
 failed = "失败了"
 "failed-body" = "原因见输出。失败前已完成的部分仍可撤销。"
 
-# The Settings page: the shared Quvyta appearance rows and its update notice.
+# The Settings page: the shared Quvyta appearance rows, its update notice and qtools' own
+# "ask for the password once" switch.
 [settings]
 title = "设置"
 "not-saved" = "设置未能保存，已还原"
+"password-once" = "在 qtools 打开期间只询问一次密码"
+"password-once-text" = "密码绝不会被写入文件，权限在 qtools 关闭时结束。"
 
 [keys]
 revert = "撤销"
+options = "选项"
 "close-run" = "关闭"
 
 [cli]
-usage = "用法：qtools, qtools --run <tweak>..., qtools --revert <tweak>..."
+usage = "用法：qtools, qtools --run <tweak>..., qtools --revert <tweak>..., qtools --help, qtools --version"
 "unknown-argument" = "未知参数：{argument}"
 "unknown-tweak" = "没有名为 {id} 的设置。"
 applying = "正在应用：{tweak}"
@@ -158,6 +199,39 @@ done = "完成"
 failed = "失败：{reason}"
 "step-failed" = "第 {step} 步失败：{reason}"
 stopped = "其余设置未执行。"
+
+# What stopped a step or an undo. {file}, {backup} and {folder} are paths; {found} and {said}
+# are the machine's own text, shown as it is.
+[problem]
+"file-missing" = "{file} 不存在。"
+"section-missing" = "{file} 中没有 [{section}] 部分。"
+"option-differs" = "{file} 已将 {key} 设为 {found}。"
+"file-differs" = "{file} 中是别的内容；第 {line} 行为：{found}"
+"file-ends" = "{file} 中是别的内容；它在第 {line} 行之前就结束了。"
+"list-not-set" = "{key} 既没有在 {file} 中设置，也没有在 {folder} 中设置。"
+"list-unreadable" = "{key} 在 {file} 中设置，但现在无法读取该文件。"
+"list-not-understood" = "{file} 设置该列表的方式 qtools 不会修改：{found}"
+"list-not-in-file" = "{file} 不再设置该列表。"
+"changed-after-write" = "{file} 在 qtools 写入后被改动过，因此保持原样，没有撤销任何内容。"
+"backup-missing" = "{file} 的备份已不存在（{backup}），因此文件保持原样，没有撤销任何内容。"
+"nothing-recorded" = "这一项不是 qtools 做的，没有可撤销的内容。"
+"record-does-not-match" = "qtools 关于第 {step} 步的记录已与此项不符，没有撤销任何内容。"
+"not-recorded" = "无法记录这项改动，因此已将其撤回：{why}"
+"not-recorded-left" = "这项改动既无法记录也无法撤回，仍留在系统上：{why}"
+"write-refused" = "无法写入 {file}。"
+"write-refused-said" = "无法写入 {file}：{said}"
+"root-to-read" = "只有 root 能读取此项是否已完成。应用时，qtools 会在你输入密码后先检查，并保留已存在的内容。"
+"unreadable" = "qtools 无法读取此项的状态：{why}"
+# The session that holds one terminal for a whole qtools: the process that carries the runs out,
+# and the screen's side of it. {channel} is where the control channel would be, {reason} what the
+# machine said about it.
+[session]
+"no-folder" = "这台机器上没有地方存放会话的控制通道，因此每次运行都会询问密码。"
+"unknown-request" = "会话被要求做别的事，什么也没有做。"
+"channel-failed" = "会话无法打开它的控制通道 {channel}：{reason}"
+"channel-not-made" = "无法建立控制通道，因此这次运行使用自己的终端：{reason}"
+"not-asked" = "在整个 qtools 期间保持同一个终端的会话已结束，因此这次运行使用自己的终端：{reason}"
+"gone" = "在整个 qtools 期间保持同一个终端的会话已结束，因此这次运行没有执行。"
 
 [unsupported]
 title = "目前仅支持 Arch Linux"
@@ -169,3 +243,8 @@ intro = "qtools 会更改系统的配置方式，所以它有三个承诺。"
 touches = "每一项都会在执行前显示它将改动哪些内容。"
 confirm = "未经你确认，不会执行任何操作。所有命令都在屏幕上的终端里运行，由你亲自输入密码。"
 undo = "已应用的项目可以用 {key} 撤销，还原自 qtools 保存在 {folder} 中的备份。"
+"undo-unbound" = "已应用的项可以在其详情中撤销，使用 qtools 保存在 {folder} 中的备份。"
+
+[tweak.firewall-ssh]
+title = "SSH 通过防火墙"
+summary = "添加一条防火墙规则，放行 22 端口的 SSH 连接，这样防火墙开启时你仍能远程访问这台机器。你自己添加的规则保持不变，撤销时只移除 qtools 添加的规则。"

@@ -15,6 +15,7 @@ use qframe::prelude::*;
 
 use crate::app::{Opening, Tools};
 use crate::catalog;
+use crate::catalog::hardware::Cpu;
 use crate::tweak::TweakState;
 
 /// A folder of its own under the system's temporary folder, removed with everything in it when
@@ -47,8 +48,8 @@ impl Drop for Root {
 /// `height`, started the way the runtime starts it: the preferences [`Opening::new`] resolved
 /// are the language and theme of the first frame.
 fn start(root: &Path, width: u16, height: u16) -> Harness<Tools> {
-    let states = vec![TweakState::Off; catalog::all().len()];
-    let opening = Opening::new(Some(&root.join("config")), Some(&root.join("fonts")), states);
+    let states = vec![TweakState::Off; catalog::all(Cpu::Intel).len()];
+    let opening = Opening::new(Some(&root.join("config")), Some(&root.join("fonts")), states, Cpu::Intel);
     let language = opening.preferences.language().value.clone();
     let theme = opening.preferences.theme().value.clone();
     let mut h = Harness::with_env(opening.tools, crate::locales::env(), width, height);

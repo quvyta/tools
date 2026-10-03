@@ -2,6 +2,39 @@
 
 Every release of quvyta-tools, newest first. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/); while the version starts with 0, a minor release may change the command line or the files qtools keeps under `~/.local/state/quvyta-tools/`, and the notes say so when it does.
 
+## 0.1.12 - 2026-10-03
+
+### Added
+
+- The command palette: `ctrl k` opens it over the screen, with everything the keys and the sidebar do from where the screen stands, each with its key beside it, found by typing a few letters of a command's name.
+- The options form: `a`, or the button under them in the detail panel, changes an item's own values before it is applied (the mirror list's country and count, pacman's parallel downloads, the AUR helper, the journal size limit). They are kept in `tools.conf` under `option.`-prefixed keys, the screen and `qtools --run` build the catalog from that one file, and a value qtools cannot use is ignored rather than acted on.
+- The processor's microcode (`microcode`): `intel-ucode` or `amd-ucode`, put in the initramfs by mkinitcpio's own `microcode` hook; the bootloader is never touched.
+- `qtools --help` and `qtools --version`, on every distribution.
+- SSH through the firewall (`firewall-ssh`): one ufw rule for port 22, read from `/etc/ufw/user.rules` without a password. A rule you made yourself is left alone, and undoing removes only the rule qtools added.
+- An `Unknown` state: an item whose state could not be read says so, and the detail panel says what stopped the reading. A changed item's panel says what was found.
+
+### Changed
+
+- The mirrors' country and count go into `/etc/xdg/reflector/reflector.conf`, the file `reflector.timer` reads every week, and the first list is made from it; before, a week later the timer rewrote the list with mirrors from anywhere.
+- NVIDIA's three sleep services are only enabled, not started (starting `nvidia-suspend.service` suspends the driver at once), and the initramfs is built again so the modeset option is in it.
+- Undo is offered only for items qtools applied itself. The journal no longer keeps undo commands: they come from the catalog. A journal written by an earlier version still reads.
+- Undoing the AUR helper leaves `base-devel` and `git` installed; its build folder is removed when the build ends.
+- Failure messages are in the language of the screen or the terminal; a file that differs is shown by its first different line, not whole.
+- The confirmation before a run says where the files it writes are backed up; an undo's confirmation does not, since it keeps no backup.
+- The update notice on the Settings page is the framework's own row, written in the background as before.
+- Built on quvyta-framework 0.1.32.
+
+### Fixed
+
+- `qtools --run` carried out an item that does not fit the machine (Bluetooth without a controller, NVIDIA without the card); it is refused before its first step now, as the screen refuses it.
+- NVIDIA and Wayland said the driver was not installed on a machine with `nvidia-open-lts` or an older card's series from the AUR (`nvidia-580xx-dkms`); every build of the driver counts now.
+- An item whose state could not be read was shown as `Off`, which offered to apply what may already be done.
+- The journal limit and the Qt-GTK item failed at their first step on a clean Arch: the folder of their file did not exist. qtools now makes it.
+- An undo that stopped halfway could never be finished; an undo whose backup was gone wrote the file empty. Now an undo checks everything before it touches anything, and drops each step from the journal as it is undone.
+- A pacman option missing from `pacman.conf` was added at the end of the file, under the last repository; it goes into `[options]` now.
+- A backup is on disk before its step changes anything, and the journal is written after every step, so a run cut short can be undone.
+- The confirmation counted steps already done among those that ask for your password; a half-done item now counts only the steps a run still has to do.
+
 ## 0.1.11 - 2026-09-25
 
 ### Changed

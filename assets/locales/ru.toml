@@ -21,7 +21,7 @@ summary = "Загружает пакеты параллельно, включа�
 
 [tweak.multilib]
 title = "Репозиторий multilib"
-summary = "Подключает 32-битный репозиторий, который нужен Steam и некоторым драйверам. Он станет доступен после следующего полного обновления (`pacman -Syu`)."
+summary = "Добавляет 32-битный репозиторий, который нужен Steam и некоторым драйверам. Его пакеты можно будет установить после вашего следующего полного обновления системы."
 
 [tweak.aur-helper]
 title = "Помощник AUR"
@@ -43,9 +43,13 @@ summary = "Ограничивает место на диске, которое �
 title = "Синхронизация времени"
 summary = "Поддерживает точное время с помощью службы времени из состава systemd."
 
+[tweak.microcode]
+title = "Микрокод процессора"
+summary = "Устанавливает микрокод вашего процессора и добавляет hook `microcode` в mkinitcpio для initramfs, поэтому загрузчик не затрагивается. Загрузится при следующей загрузке; пересборка занимает около минуты."
+
 [tweak.zram-swap]
 title = "Сжатый своп в ОЗУ"
-summary = "Добавляет сжатое своп-устройство в ОЗУ размером в половину вашей памяти, в дополнение к уже имеющемуся свопу. Вступает в силу при следующей загрузке или запуске службы zram."
+summary = "Добавляет сжатый swap в оперативной памяти размером в половину памяти, но не больше 8 ГБ, в дополнение к уже имеющемуся swap. Включается при следующей загрузке или следующем запуске службы zram."
 
 [tweak.bluetooth]
 title = "Bluetooth"
@@ -57,15 +61,15 @@ summary = "Устанавливает tlp и включает его с наст
 
 [tweak.nvidia-wayland]
 title = "NVIDIA и Wayland"
-summary = "Включает modesetting ядра NVIDIA и её службы приостановки, нужные для стабильного сеанса Wayland. Вступает в силу при следующей загрузке; если модуль nvidia встроен в initramfs, дополнительно нужно выполнить `mkinitcpio -P`."
+summary = "Включает modesetting ядра NVIDIA и её службы сна и пробуждения, нужные для плавной сессии Wayland, и пересобирает initramfs, чтобы настройка попала и туда. Действует после следующей загрузки; пересборка занимает около минуты."
 
 [tweak.firewall]
 title = "Брандмауэр"
-summary = "Устанавливает и включает ufw: входящие подключения блокируются, исходящие разрешены. qtools ничего не открывает, поэтому для SSH и любой другой службы, которая должна быть доступна извне, нужно своё правило ufw allow."
+summary = "Устанавливает и включает ufw: входящие соединения блокируются, исходящие разрешены. qtools ничего не открывает, SSH тоже; компьютер, к которому вы подключаетесь по SSH, перестанет принимать новые соединения, поэтому применяйте это, сидя за самим компьютером."
 
 [tweak.ssh-hardening]
 title = "Защита SSH"
-summary = "Отдельным drop-in файлом запрещает вход по SSH по паролю и под root. Вступает в силу при следующем перезапуске sshd; после этого войти можно только по ключу, поэтому на удалённой машине заранее убедитесь, что ваш ключ уже на месте."
+summary = "Отключает вход по паролю и вход под root через SSH в отдельном файле. sshd прочитает его при следующем запуске, например при следующей загрузке; после этого войти можно только по ключу, поэтому на удалённом компьютере убедитесь, что ваш ключ уже установлен."
 
 [tweak.qt-gtk-match]
 title = "Qt подстраивается под GTK"
@@ -89,13 +93,19 @@ summary = "Делает семейство Noto системным шрифто�
 "other-time-service" = "Временем управляет другая служба"
 
 "no-openssh" = "openssh не установлен"
+"no-ufw" = "Брандмауэр (ufw) не установлен"
 "no-graphical-session" = "На этой машине нет графической сессии"
+
+"no-cpu-microcode" = "Нет пакета микрокода для этого процессора"
+"no-mkinitcpio" = "На этом компьютере нет /etc/mkinitcpio.conf"
+"mkinitcpio-too-old" = "В этой версии mkinitcpio нет hook microcode"
 
 "no-bluetooth" = "На этой машине нет контроллера Bluetooth"
 "no-battery" = "На этой машине нет батареи"
 "power-profiles-daemon" = "Питанием уже управляет power-profiles-daemon"
 "no-nvidia" = "На этой машине нет карты NVIDIA"
 "no-nvidia-driver" = "Драйвер NVIDIA не установлен"
+"ufw-rules-unreadable" = "Правила брандмауэра (/etc/ufw/user.rules) нельзя прочитать"
 
 [header]
 tagline = "Рекомендуемые настройки Arch Linux"
@@ -105,13 +115,16 @@ applied = "Применено"
 off = "Выключено"
 half = "Частично"
 changed = "Изменено"
+unknown = "Неизвестно"
 
 [detail]
 touches = "Затрагивает"
 
 [touch]
 package = "пакет"
+"needed-package" = "пакет, остаётся при отмене"
 service = "служба"
+unit = "служба, запускается, когда нужно"
 command = "команда"
 
 [hints]
@@ -120,16 +133,40 @@ toggle = "отметить"
 apply = "применить"
 change = "изменить"
 
+# The command palette: one row for what a key or a click does from where the screen stands.
+# {tweak} is the chosen item's title.
+[palette]
+apply = "Применить: {tweak}"
+mark = "Отметить: {tweak}"
+unmark = "Снять отметку: {tweak}"
+undo = "Откатить: {tweak}"
+options = "Параметры: {tweak}"
+"show-detail" = "Показать панель подробностей"
+"hide-detail" = "Скрыть панель подробностей"
+quit = "Выйти"
+
 [confirm]
 "apply.title" = "Применить?"
 apply = "Применить"
 "revert.title" = "Откатить?"
 revert = "Откатить"
 cancel = "Отмена"
+backups = "Каждый указанный файл, который уже существует, сначала копируется в {folder}, чтобы изменения можно было отменить."
 "password-steps" = { one = "{n} шаг запросит пароль.", few = "{n} шага запросят пароль.", many = "{n} шагов запросят пароль.", other = "{n} шага запросят пароль." }
 
 [revert]
 button = "Откатить"
+
+# The options form of a tweak that has options. {min} and {max} are the range its number allows.
+[form]
+title = "Параметры"
+button = "Параметры"
+save = "Сохранить"
+cancel = "Отмена"
+"country-bad" = "Введите от 2 до 60 букв, допустимы пробелы, запятые и дефисы."
+"count-bad" = "Введите число от {min} до {max}."
+"helper-bad" = "Выберите paru или yay."
+"not-saved" = "Значения не удалось сохранить, поэтому они не применены"
 
 [run]
 applying = "Применяется: {tweak}"
@@ -139,17 +176,21 @@ done = "Готово"
 failed = "Не удалось"
 "failed-body" = "Причина видна в выводе. То, что успело выполниться до ошибки, всё равно можно откатить."
 
-# The Settings page: the shared Quvyta appearance rows and its update notice.
+# The Settings page: the shared Quvyta appearance rows, its update notice and qtools' own
+# "ask for the password once" switch.
 [settings]
 title = "Настройки"
 "not-saved" = "Настройку не удалось сохранить, поэтому её вернули обратно"
+"password-once" = "Спрашивать пароль один раз, пока открыт qtools"
+"password-once-text" = "Пароль никогда не записывается в файл, а разрешение заканчивается, когда qtools закрывается."
 
 [keys]
 revert = "откатить"
+options = "параметры"
 "close-run" = "закрыть"
 
 [cli]
-usage = "Использование: qtools, qtools --run <tweak>..., qtools --revert <tweak>..."
+usage = "Использование: qtools, qtools --run <tweak>..., qtools --revert <tweak>..., qtools --help, qtools --version"
 "unknown-argument" = "Неизвестный аргумент: {argument}"
 "unknown-tweak" = "Настройки {id} нет."
 applying = "Применяется: {tweak}"
@@ -158,6 +199,39 @@ done = "готово"
 failed = "ошибка: {reason}"
 "step-failed" = "шаг {step} не выполнен: {reason}"
 stopped = "Остальные настройки не запускались."
+
+# What stopped a step or an undo. {file}, {backup} and {folder} are paths; {found} and {said}
+# are the machine's own text, shown as it is.
+[problem]
+"file-missing" = "{file} не существует."
+"section-missing" = "В {file} нет раздела [{section}]."
+"option-differs" = "{file} уже задаёт для {key} значение {found}."
+"file-differs" = "В {file} что-то другое; строка {line}: {found}"
+"file-ends" = "В {file} что-то другое; файл заканчивается раньше строки {line}."
+"list-not-set" = "{key} не задан ни в {file}, ни в {folder}."
+"list-unreadable" = "{key} задан в {file}, но сейчас этот файл нельзя прочитать."
+"list-not-understood" = "{file} задаёт список так, что qtools его не меняет: {found}"
+"list-not-in-file" = "{file} больше не задаёт список."
+"changed-after-write" = "{file} изменили после того, как qtools его записал; файл оставлен как есть, ничего не отменено."
+"backup-missing" = "Резервной копии {file} больше нет ({backup}); файл оставлен как есть, ничего не отменено."
+"nothing-recorded" = "Это сделал не qtools, отменять нечего."
+"record-does-not-match" = "Запись qtools о шаге {step} больше не совпадает с этим пунктом; ничего не отменено."
+"not-recorded" = "Изменение не удалось записать, поэтому оно отменено: {why}"
+"not-recorded-left" = "Изменение не удалось ни записать, ни отменить, поэтому оно осталось в системе: {why}"
+"write-refused" = "Не удалось записать {file}."
+"write-refused-said" = "Не удалось записать {file}: {said}"
+"root-to-read" = "Только root может прочитать, сделано ли это. При применении qtools сначала проверяет, после ввода вашего пароля, и не трогает то, что уже есть."
+"unreadable" = "qtools не смог прочитать, в каком состоянии этот пункт: {why}"
+# The session that holds one terminal for a whole qtools: the process that carries the runs out,
+# and the screen's side of it. {channel} is where the control channel would be, {reason} what the
+# machine said about it.
+[session]
+"no-folder" = "На этой машине негде хранить канал управления сессией, поэтому пароль будет спрашиваться при каждом запуске."
+"unknown-request" = "У сессии спросили о другом, и она ничего не сделала."
+"channel-failed" = "Сессия не смогла открыть свой канал управления {channel}: {reason}"
+"channel-not-made" = "Канал управления создать не удалось, поэтому для этого запуска есть отдельный терминал: {reason}"
+"not-asked" = "Сессия, которая держит один терминал на всё время qtools, закончилась, поэтому для этого запуска есть отдельный терминал: {reason}"
+"gone" = "Сессия, которая держит один терминал на всё время qtools, закончилась, поэтому этот запуск не был выполнен."
 
 [unsupported]
 title = "Пока только Arch Linux"
@@ -169,3 +243,8 @@ intro = "qtools меняет настройки вашей системы, по�
 touches = "Каждый пункт показывает, что он затронет, прежде чем что-либо будет запущено."
 confirm = "Ничего не запускается без вашего подтверждения. Всё выполняется в терминале на экране, где вы вводите свой пароль."
 undo = "Применённый пункт можно отменить с помощью {key} из резервной копии, которую qtools хранит в {folder}."
+"undo-unbound" = "Применённый пункт можно отменить в его подробностях, из резервной копии, которую qtools хранит в {folder}."
+
+[tweak.firewall-ssh]
+title = "SSH через брандмауэр"
+summary = "Добавляет одно правило брандмауэра, которое разрешает SSH на порту 22, чтобы брандмауэр оставался включённым, а вы могли по-прежнему подключаться к этому компьютеру удалённо. Правило, созданное вами, не затрагивается, а отмена удаляет только правило, добавленное qtools."

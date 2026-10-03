@@ -4,6 +4,7 @@
 //! moment it is added.
 
 use std::collections::BTreeSet;
+use std::time::Duration;
 
 use qframe::i18n::I18n;
 use qframe::icons::GlyphMode;
@@ -11,12 +12,13 @@ use qframe::text;
 
 use super::unsupported::Unsupported;
 use super::*;
-use crate::tweak::TweakState;
+use crate::catalog::hardware::Cpu;
 
 /// The sizes the layout is designed for: wide, the narrowest fold, and short.
 const SIZES: [(u16, u16); 3] = [(100, 24), (48, 20), (80, 14)];
 
-fn codes() -> Vec<String> {
+/// The codes of the languages qtools speaks, in the order the files are compiled in.
+pub(super) fn codes() -> Vec<String> {
     crate::locales::env().i18n().list().into_iter().map(|(code, _)| code).collect()
 }
 
@@ -32,13 +34,13 @@ fn text_in(code: &str, key: &str, args: &[(&str, qframe::i18n::Arg)]) -> String 
 }
 
 fn harness(code: &str, width: u16, height: u16) -> Harness<Tools> {
-    let mut h = Harness::with_env(Tools::default(), crate::locales::env(), width, height);
+    let mut h = Harness::with_env(super::tests::off(Cpu::Intel), crate::locales::env(), width, height);
     h.set_locale(code).set_glyph_mode(GlyphMode::Unicode).set_reduced_motion(true);
     h
 }
 
 fn focus_tweaks(h: &mut Harness<Tools>) {
-    for _ in 0..5 {
+    for _ in 0..8 {
         h.press("tab");
         if h.is_focused("tweaks") {
             return;
@@ -95,7 +97,7 @@ fn every_group_reads_in_full_in_every_language_and_size() {
                 if height < 20 {
                     continue;
                 }
-                for tweak in catalog::in_group(group) {
+                for tweak in catalog::in_group(group, Cpu::Intel, &crate::choices::Choices::recommended()) {
                     let title = text_in(&code, &format!("tweak.{}.title", tweak.id), &[]);
                     assert!(screen.contains(&title), "{what}: `{title}` is cut:\n{screen}");
                 }
@@ -169,6 +171,51 @@ fn the_narrow_screen_keeps_the_rules_in_ascii_in_every_language() {
     }
 }
 
+/// The command palette in `code`, on a screen of `width` by `height`, open over the list: the
+/// framework's own words come from its language files, the commands from the screen's.
+#[test]
+fn the_palette_reads_in_every_language_at_every_size() {
+    for code in codes() {
+        for (width, height) in SIZES {
+            let mut h = harness(&code, width, height);
+            h.press("ctrl+k").advance(Duration::from_millis(300));
+            let what = format!("{code} {width}x{height} palette");
+            let filter = text_in(&code, "quvyta.palette.placeholder", &[]);
+            assert!(h.screen().contains(&filter), "{what}: the palette did not open:\n{}", h.screen());
+            assert_clean(&h, &what);
+            let screen = h.screen();
+            // The detail is a panel beside the list on a wide screen and a column under it on a
+            // narrow one, and each starts open in its own way, so the command names the one this
+            // screen has.
+            let detail_key = if width < super::FOLD_BELOW { "palette.show-detail" } else { "palette.hide-detail" };
+            // The detail, the chosen item's own two commands and the first groups are the rows a
+            // short screen still shows; the rest of the list scrolls, as it does for a person.
+            let title = text_in(&code, "tweak.mirrors.title", &[]);
+            for key in [detail_key, "palette.apply", "palette.mark"] {
+                let label = text_in(&code, key, &[("tweak", title.clone().into())]);
+                assert!(reads_whole(&screen, &label), "{what}: `{label}` is cut:\n{screen}");
+            }
+            for key in ["group.packages", "group.security"] {
+                let label = text_in(&code, key, &[]);
+                assert!(screen.contains(&label), "{what}: `{label}` is cut:\n{screen}");
+            }
+            // The key beside a command is the one the keymap binds, and it is written the same way
+            // in every language: the chord is not translated, the word beside it is.
+            let detail = row_with(&screen, &text_in(&code, detail_key, &[]));
+            assert!(detail.contains("alt b"), "{what}: the detail's row has no key:\n{screen}");
+
+            h.set_glyph_mode(GlyphMode::Ascii);
+            assert_clean(&h, &format!("{what} ascii"));
+            assert_no_forbidden_shapes(&h, &format!("{what} ascii"));
+        }
+    }
+}
+
+/// The row of `screen` that carries `label`.
+fn row_with(screen: &str, label: &str) -> String {
+    screen.lines().find(|row| row.contains(label)).unwrap_or_default().to_owned()
+}
+
 #[test]
 fn the_unsupported_notice_reads_in_every_language() {
     for code in codes() {
@@ -187,19 +234,20 @@ fn the_unsupported_notice_reads_in_every_language() {
 /// The wizard of a first start in `code`, on a screen of `width` by `height`: built by
 /// [`Opening::new`] over an empty temporary Quvyta folder, as a first start is.
 fn wizard(root: &std::path::Path, code: &str, width: u16, height: u16) -> Harness<Tools> {
-    let states = vec![TweakState::Off; catalog::all().len()];
+    let states = super::tests::every_tweak_off();
     let folders = UpdateFolders { config: root.join("config"), state: root.join("state") };
-    let opening =
-        Opening::new(Some(&root.join("config")), Some(&root.join("fonts")), states).with_updates(Some(folders));
+    let opening = Opening::new(Some(&root.join("config")), Some(&root.join("fonts")), states, Cpu::Intel)
+        .with_updates(Some(folders));
     let mut h = Harness::with_env(opening.tools, crate::locales::env(), width, height);
     h.set_locale(code).set_glyph_mode(GlyphMode::Unicode).set_reduced_motion(true);
     h
 }
 
 /// Whether `text` stands on screen whole, however it was wrapped: the screen and the text are
-/// compared without their spaces, so a line broken over several rows still counts.
-fn reads_whole(screen: &str, text: &str) -> bool {
-    let squeeze = |text: &str| text.chars().filter(|c| !c.is_whitespace()).collect::<String>();
+/// compared without their spaces and without the pillar, which a dialog draws down its left edge
+/// on every row and which would sit between the two halves of a message that wrapped.
+pub(super) fn reads_whole(screen: &str, text: &str) -> bool {
+    let squeeze = |text: &str| text.chars().filter(|c| !c.is_whitespace() && *c != '\u{258c}').collect::<String>();
     squeeze(screen).contains(&squeeze(text))
 }
 
@@ -277,9 +325,10 @@ fn settings_page(root: &std::path::Path, code: &str, width: u16, height: u16) ->
         .expect("shared file");
     std::fs::write(config.join("tools.conf"), "language = \"quvyta\"\ntheme = \"quvyta\"\nicons = \"quvyta\"\n")
         .expect("own file");
-    let states = vec![TweakState::Off; catalog::all().len()];
+    let states = super::tests::every_tweak_off();
     let folders = UpdateFolders { config: config.clone(), state: root.join("state") };
-    let opening = Opening::new(Some(&config), Some(&root.join("fonts")), states).with_updates(Some(folders));
+    let opening =
+        Opening::new(Some(&config), Some(&root.join("fonts")), states, Cpu::Intel).with_updates(Some(folders));
     let mut h = Harness::with_env(opening.tools, crate::locales::env(), width, height);
     h.set_locale(code).set_glyph_mode(GlyphMode::Unicode).set_reduced_motion(true);
     h.send(Msg::PickGroup("settings".to_owned()));
@@ -348,6 +397,9 @@ fn visual_review_of_every_language() {
         focus_tweaks(&mut h);
         h.press("enter");
         pages.push(h.html(&format!("{code} 100x24, confirmation")));
+        let mut h = harness(&code, 100, 24);
+        h.press("ctrl+k").advance(Duration::from_millis(300));
+        pages.push(h.html(&format!("{code} 100x24, palette")));
         // A folder of its own: the wizard of the next language needs one without `tools.conf`.
         let set_up = super::wizard::tests::Root::new();
         pages.push(settings_page(set_up.path(), &code, 100, 30).html(&format!("{code} 100x30, settings")));

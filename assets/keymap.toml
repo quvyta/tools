@@ -1,4 +1,10 @@
-# The application's own keys. Global keys (quit, focus, the panel) come from the framework.
+# The application's own keys. Global keys (quit, focus, the panel) come from the framework, except
+# the command palette: it is a framework action too, opened with `ctrl k` rather than `ctrl p`, and
+# its own key is written out on the palette's rows and in the header's corner.
+[global]
+palette = "ctrl+k"
+
 [app]
 revert = "z"
+options = "a"
 close-run = "esc"

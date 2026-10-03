@@ -21,7 +21,7 @@ summary = "Baixa pacotes em paralelo e mostra cores e listas completas de versõ
 
 [tweak.multilib]
 title = "Repositório multilib"
-summary = "Adiciona o repositório de 32 bits, necessário para o Steam e alguns drivers. Ele passa a funcionar depois da próxima atualização completa (`pacman -Syu`)."
+summary = "Adiciona o repositório de 32 bits, necessário para o Steam e para alguns drivers. Os pacotes dele poderão ser instalados depois da sua próxima atualização completa do sistema."
 
 [tweak.aur-helper]
 title = "Auxiliar do AUR"
@@ -43,9 +43,13 @@ summary = "Limita quanto espaço em disco o log do sistema pode ocupar, com um a
 title = "Sincronia do relógio"
 summary = "Mantém o relógio certo com o serviço de horário que vem com o systemd."
 
+[tweak.microcode]
+title = "Microcódigo do processador"
+summary = "Instala o microcódigo do seu processador e adiciona o hook `microcode` do mkinitcpio ao initramfs, sem mexer no bootloader. Ele é carregado na próxima inicialização; a reconstrução leva cerca de um minuto."
+
 [tweak.zram-swap]
 title = "Swap comprimida na RAM"
-summary = "Adiciona um dispositivo de swap comprimida na RAM, do tamanho de metade da sua memória, além da swap que você já tiver. Vale a partir da próxima inicialização ou do próximo início do serviço do zram."
+summary = "Adiciona um swap comprimido na RAM, com metade da sua memória e no máximo 8 GB, além de qualquer swap que você já tenha. Fica ativo na próxima inicialização ou no próximo início do serviço zram."
 
 [tweak.bluetooth]
 title = "Bluetooth"
@@ -57,15 +61,15 @@ summary = "Instala o tlp e o ativa com seus próprios valores padrão. Ele se af
 
 [tweak.nvidia-wayland]
 title = "NVIDIA e Wayland"
-summary = "Ativa o modesetting de kernel da NVIDIA e seus serviços de suspensão, necessários para uma sessão Wayland sem falhas. Vale a partir da próxima inicialização; se o módulo nvidia estiver embutido no seu initramfs, também é preciso rodar `mkinitcpio -P`."
+summary = "Ativa o modesetting do kernel da NVIDIA e os serviços de suspensão dela, necessários para uma sessão Wayland fluida, e reconstrói o initramfs para que a configuração também esteja nele. Vale a partir da próxima inicialização; a reconstrução leva cerca de um minuto."
 
 [tweak.firewall]
 title = "Firewall"
-summary = "Instala o ufw e o ativa: conexões de entrada são bloqueadas, as de saída são permitidas. O qtools não abre nada, então o SSH e qualquer outro serviço que precise continuar acessível precisam de uma regra ufw allow própria."
+summary = "Instala o ufw e o liga: conexões de entrada são bloqueadas, as de saída são permitidas. O qtools não abre nada, nem o SSH; uma máquina que você acessa por SSH deixa de aceitar novas conexões, então aplique isto na própria máquina."
 
 [tweak.ssh-hardening]
 title = "Proteção do SSH"
-summary = "Desativa o login por senha e o login como root via SSH, em um arquivo drop-in próprio. Vale a partir do próximo reinício do sshd; daí em diante só se entra com chave, então, numa máquina que você acessa remotamente, confira se a sua chave já está instalada."
+summary = "Desativa o login por senha e como root via SSH em um arquivo próprio. O sshd o lê na próxima vez que iniciar, por exemplo na próxima inicialização; a partir daí só entram chaves, então, numa máquina que você acessa remotamente, confira se a sua chave já está instalada."
 
 [tweak.qt-gtk-match]
 title = "Qt segue o GTK"
@@ -89,13 +93,19 @@ summary = "Torna a família Noto o padrão do sistema para texto sans, serifado 
 "other-time-service" = "Outro serviço de horário cuida do relógio"
 
 "no-openssh" = "O openssh não está instalado"
+"no-ufw" = "O firewall (ufw) não está instalado"
 "no-graphical-session" = "Não há sessão gráfica nesta máquina"
+
+"no-cpu-microcode" = "Sem pacote de microcódigo para este processador"
+"no-mkinitcpio" = "Esta máquina não tem /etc/mkinitcpio.conf"
+"mkinitcpio-too-old" = "Este mkinitcpio não tem hook de microcódigo"
 
 "no-bluetooth" = "Esta máquina não tem controlador Bluetooth"
 "no-battery" = "Esta máquina não tem bateria"
 "power-profiles-daemon" = "O power-profiles-daemon já cuida da energia"
 "no-nvidia" = "Esta máquina não tem placa NVIDIA"
 "no-nvidia-driver" = "O driver da NVIDIA não está instalado"
+"ufw-rules-unreadable" = "As regras do firewall (/etc/ufw/user.rules) não podem ser lidas"
 
 [header]
 tagline = "Ajustes recomendados para Arch Linux"
@@ -105,13 +115,16 @@ applied = "Ativo"
 off = "Inativo"
 half = "Parcial"
 changed = "Alterado"
+unknown = "Desconhecido"
 
 [detail]
 touches = "Afeta"
 
 [touch]
 package = "pacote"
+"needed-package" = "pacote, fica ao desfazer"
 service = "serviço"
+unit = "serviço, roda quando é preciso"
 command = "comando"
 
 [hints]
@@ -120,16 +133,40 @@ toggle = "marcar"
 apply = "aplicar"
 change = "alterar"
 
+# The command palette: one row for what a key or a click does from where the screen stands.
+# {tweak} is the chosen item's title.
+[palette]
+apply = "Aplicar: {tweak}"
+mark = "Marcar: {tweak}"
+unmark = "Desmarcar: {tweak}"
+undo = "Desfazer: {tweak}"
+options = "Opções: {tweak}"
+"show-detail" = "Mostrar o painel de detalhes"
+"hide-detail" = "Ocultar o painel de detalhes"
+quit = "Sair"
+
 [confirm]
 "apply.title" = "Aplicar isto?"
 apply = "Aplicar"
 "revert.title" = "Desfazer isto?"
 revert = "Desfazer"
 cancel = "Cancelar"
+backups = "Cada arquivo listado que já existe é copiado antes para {folder}, para poder desfazer."
 "password-steps" = { one = "{n} etapa vai pedir sua senha.", other = "{n} etapas vão pedir sua senha." }
 
 [revert]
 button = "Desfazer"
+
+# The options form of a tweak that has options. {min} and {max} are the range its number allows.
+[form]
+title = "Opções"
+button = "Opções"
+save = "Salvar"
+cancel = "Cancelar"
+"country-bad" = "Escreva de 2 a 60 letras, também com espaços, vírgulas ou hifens."
+"count-bad" = "Escreva um número entre {min} e {max}."
+"helper-bad" = "Escolha paru ou yay."
+"not-saved" = "Não foi possível salvar os valores, então eles não foram usados"
 
 [run]
 applying = "Aplicando {tweak}"
@@ -139,17 +176,21 @@ done = "Pronto"
 failed = "Falhou"
 "failed-body" = "A saída mostra o motivo. O que foi feito antes da falha ainda pode ser desfeito."
 
-# The Settings page: the shared Quvyta appearance rows and its update notice.
+# The Settings page: the shared Quvyta appearance rows, its update notice and qtools' own
+# "ask for the password once" switch.
 [settings]
 title = "Configurações"
 "not-saved" = "A configuração não pôde ser salva, então foi revertida"
+"password-once" = "Pedir a senha uma única vez enquanto o qtools estiver aberto"
+"password-once-text" = "A senha nunca é gravada em um arquivo, e a permissão termina quando o qtools é fechado."
 
 [keys]
 revert = "desfazer"
+options = "opções"
 "close-run" = "fechar"
 
 [cli]
-usage = "Uso: qtools, qtools --run <tweak>..., qtools --revert <tweak>..."
+usage = "Uso: qtools, qtools --run <tweak>..., qtools --revert <tweak>..., qtools --help, qtools --version"
 "unknown-argument" = "Argumento desconhecido: {argument}"
 "unknown-tweak" = "Não existe nenhum ajuste chamado {id}."
 applying = "Aplicando {tweak}"
@@ -158,6 +199,39 @@ done = "pronto"
 failed = "falhou: {reason}"
 "step-failed" = "a etapa {step} falhou: {reason}"
 stopped = "Os ajustes restantes não foram executados."
+
+# What stopped a step or an undo. {file}, {backup} and {folder} are paths; {found} and {said}
+# are the machine's own text, shown as it is.
+[problem]
+"file-missing" = "{file} não existe."
+"section-missing" = "{file} não tem a seção [{section}]."
+"option-differs" = "{file} já define {key} como {found}."
+"file-differs" = "{file} contém outra coisa; a linha {line} diz: {found}"
+"file-ends" = "{file} contém outra coisa; termina antes da linha {line}."
+"list-not-set" = "{key} não está definida nem em {file} nem em {folder}."
+"list-unreadable" = "{key} está definida em {file}, mas esse arquivo não pode ser lido agora."
+"list-not-understood" = "{file} define a lista de um jeito que o qtools não altera: {found}"
+"list-not-in-file" = "{file} não define mais a lista."
+"changed-after-write" = "{file} foi alterado depois que o qtools o escreveu; ficou como está e nada foi desfeito."
+"backup-missing" = "O backup de {file} sumiu ({backup}); o arquivo ficou como está e nada foi desfeito."
+"nothing-recorded" = "Isto não foi feito pelo qtools, então não há nada para desfazer."
+"record-does-not-match" = "O registro do qtools para a etapa {step} não corresponde mais a este item; nada foi desfeito."
+"not-recorded" = "Não foi possível registrar a mudança, então ela foi desfeita: {why}"
+"not-recorded-left" = "Não foi possível registrar nem desfazer a mudança, então ela continua na máquina: {why}"
+"write-refused" = "Não foi possível gravar {file}."
+"write-refused-said" = "Não foi possível gravar {file}: {said}"
+"root-to-read" = "Só o root pode verificar se isto foi feito. Quando você aplica, o qtools verifica primeiro, depois da sua senha, e não mexe no que já estiver lá."
+"unreadable" = "O qtools não conseguiu ler o estado atual deste item: {why}"
+# The session that holds one terminal for a whole qtools: the process that carries the runs out,
+# and the screen's side of it. {channel} is where the control channel would be, {reason} what the
+# machine said about it.
+[session]
+"no-folder" = "Não há onde guardar o canal de controle de uma sessão nesta máquina, então a senha será pedida em cada execução."
+"unknown-request" = "Foi pedido outra coisa à sessão, e ela não fez nada."
+"channel-failed" = "A sessão não conseguiu abrir o seu canal de controle {channel}: {reason}"
+"channel-not-made" = "Não foi possível criar o canal de controle, então esta execução tem um terminal só dela: {reason}"
+"not-asked" = "A sessão que mantém um único terminal durante todo o qtools terminou, então esta execução tem um terminal só dela: {reason}"
+"gone" = "A sessão que mantém um único terminal durante todo o qtools terminou, então esta execução não foi realizada."
 
 [unsupported]
 title = "Por enquanto, só Arch Linux"
@@ -169,3 +243,8 @@ intro = "O qtools muda a configuração do seu sistema, por isso mantém três p
 touches = "Cada item mostra no que vai mexer antes de rodar qualquer coisa."
 confirm = "Nada roda antes de você confirmar. Tudo roda em um terminal na tela, onde você digita sua própria senha."
 undo = "Um item aplicado pode ser desfeito com {key}, a partir do backup que o qtools mantém em {folder}."
+"undo-unbound" = "Um item aplicado pode ser desfeito pelo detalhe dele, a partir do backup que o qtools guarda em {folder}."
+
+[tweak.firewall-ssh]
+title = "SSH pelo firewall"
+summary = "Adiciona uma regra de firewall que permite o SSH na porta 22, para que o firewall possa ficar ligado enquanto você ainda acessa esta máquina remotamente. Uma regra criada por você é deixada como está, e desfazer remove apenas a regra adicionada pelo qtools."

@@ -14,10 +14,11 @@ use qframe::icons::GlyphMode;
 use qframe::prelude::*;
 use qframe::storage::Ecosystem;
 
-use super::tests::{Script, every_tweak_off, focus_tweaks, say_yes, wait_for_exit};
+use super::tests::{Script, every_tweak_off, focus_tweaks, reading_off, say_yes, wait_for_exit};
 use super::wizard::tests::Root;
 use super::{Opening, Tools, UpdateFolders};
 use crate::catalog;
+use crate::catalog::hardware::Cpu;
 use crate::tweak::TweakState;
 
 /// Long enough for an answered question to come back and its toast to settle in.
@@ -54,9 +55,9 @@ fn set_up_before(root: &Path) {
 
 /// qtools over the Quvyta folder of `root`, built the way [`crate::run_on`] builds it.
 fn start(root: &Path) -> Harness<Tools> {
-    let states = vec![TweakState::Off; catalog::all().len()];
-    let opening =
-        Opening::new(Some(&root.join("config")), Some(&root.join("fonts")), states).with_updates(Some(folders(root)));
+    let states = vec![TweakState::Off; catalog::all(Cpu::Intel).len()];
+    let opening = Opening::new(Some(&root.join("config")), Some(&root.join("fonts")), states, Cpu::Intel)
+        .with_updates(Some(folders(root)));
     let mut h = Harness::with_env(opening.tools, crate::locales::env(), 100, 30);
     h.set_locale("en").set_glyph_mode(GlyphMode::Unicode).set_reduced_motion(true);
     h
@@ -103,8 +104,8 @@ fn with_the_quvyta_wide_switch_off_nothing_is_asked() {
 fn without_the_folders_nothing_is_asked() {
     let root = Root::new();
     set_up_before(root.path());
-    let states = vec![TweakState::Off; catalog::all().len()];
-    let opening = Opening::new(Some(&root.path().join("config")), None, states).with_updates(None);
+    let states = vec![TweakState::Off; catalog::all(Cpu::Intel).len()];
+    let opening = Opening::new(Some(&root.path().join("config")), None, states, Cpu::Intel).with_updates(None);
     let h = Harness::with_env(opening.tools, crate::locales::env(), 100, 30);
     assert!(h.update_checks().is_empty());
 }
@@ -227,8 +228,9 @@ fn a_notice_that_comes_during_a_run_waits_until_the_run_is_closed() {
     let root = Root::new();
     set_up_before(root.path());
     let script = Script::new("update-notice", "echo \"$@\"");
-    let tools =
-        Tools::new(every_tweak_off()).machine(script.0.clone(), every_tweak_off).updates(Some(folders(root.path())));
+    let tools = Tools::new(every_tweak_off(), Cpu::Intel)
+        .machine(script.0.clone(), reading_off)
+        .updates(Some(folders(root.path())));
     let mut h = Harness::with_env(tools, crate::locales::env(), 100, 24);
     h.set_locale("en").set_glyph_mode(GlyphMode::Unicode).set_reduced_motion(true);
     assert_eq!(h.update_checks().len(), 1);

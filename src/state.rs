@@ -4,8 +4,9 @@ use std::collections::BTreeMap;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use crate::step::Undo;
-use crate::system::{Cmd, System};
+use crate::problem::Problem;
+use crate::step::{Before, Step};
+use crate::system::System;
 
 /// A 64-bit FNV-1a digest, written as hexadecimal. It only has to notice a change,
 /// so a short non-cryptographic digest is enough and needs no dependency.
@@ -25,8 +26,10 @@ pub fn folder() -> PathBuf {
 }
 
 /// The pure part of [`folder`], taking the two environment variables as arguments
-/// so it can be tested without depending on the machine's real environment.
-fn folder_from(state_home: Option<String>, home: Option<String>) -> PathBuf {
+/// so it can be tested without depending on the machine's real environment, and so the screen can
+/// ask the same question of the state folder when it looks for a place to keep a session's
+/// control channel.
+pub(crate) fn folder_from(state_home: Option<String>, home: Option<String>) -> PathBuf {
     let base = state_home
         .filter(|value| !value.is_empty())
         .map(PathBuf::from)
@@ -38,7 +41,9 @@ fn folder_from(state_home: Option<String>, home: Option<String>) -> PathBuf {
 /// One step that qtools applied, and what it takes to undo it.
 ///
 /// It is read from and written to TOML by hand, through `toml::Table`, so no
-/// serialisation dependency is needed for six fields.
+/// serialisation dependency is needed for six fields. The command that undoes a step is not
+/// among them: it comes from the catalog's own step, so a journal edited on disk can never
+/// make qtools run a command of its choosing as root.
 #[derive(Debug, Clone)]
 pub struct Applied {
     /// Which tweak this step belongs to.
@@ -49,8 +54,8 @@ pub struct Applied {
     pub backup: Option<PathBuf>,
     /// The file that was changed.
     pub target: Option<PathBuf>,
-    /// The command that undoes the step, as its argument list.
-    pub undo: Option<Vec<String>>,
+    /// When the step ran, in seconds since 1970, or `None` in a journal older than this field.
+    pub when: Option<u64>,
     /// The digest of what qtools wrote, so a later change by someone else is noticed.
     pub hash: Option<String>,
 }
@@ -80,10 +85,9 @@ impl Journal {
                     step: item.get("step").and_then(toml::Value::as_integer).unwrap_or(0).unsigned_abs() as usize,
                     backup: item.get("backup").and_then(toml::Value::as_str).map(PathBuf::from),
                     target: item.get("target").and_then(toml::Value::as_str).map(PathBuf::from),
-                    undo: item
-                        .get("undo")
-                        .and_then(toml::Value::as_array)
-                        .map(|argv| argv.iter().filter_map(toml::Value::as_str).map(str::to_owned).collect()),
+                    // An older journal also kept the undo command here; it is not read, because
+                    // the command comes from the catalog.
+                    when: item.get("when").and_then(toml::Value::as_integer).map(i64::unsigned_abs),
                     hash: item.get("hash").and_then(toml::Value::as_str).map(str::to_owned),
                 });
             }
@@ -103,9 +107,8 @@ impl Journal {
             if let Some(target) = &entry.target {
                 item.insert("target".into(), toml::Value::String(target.display().to_string()));
             }
-            if let Some(undo) = &entry.undo {
-                let argv = undo.iter().cloned().map(toml::Value::String).collect();
-                item.insert("undo".into(), toml::Value::Array(argv));
+            if let Some(when) = entry.when.and_then(|when| i64::try_from(when).ok()) {
+                item.insert("when".into(), toml::Value::Integer(when));
             }
             if let Some(hash) = &entry.hash {
                 item.insert("hash".into(), toml::Value::String(hash.clone()));
@@ -116,31 +119,49 @@ impl Journal {
         system.write(&folder.join("applied.toml"), &toml::to_string_pretty(&table).map_err(io::Error::other)?, false)
     }
 
-    /// Remembers one applied step, writing its backup when a file changed.
+    /// Keeps the content a step is about to change, before it changes anything: the backup is
+    /// on disk, or the step does not run. Answers where it was kept, or `None` when the step
+    /// changes no file or the file is not there yet, which the undo answers by removing it.
+    ///
+    /// # Errors
+    ///
+    /// Fails when the backup cannot be written.
+    pub fn keep_backup(
+        tweak: &str,
+        step: usize,
+        before: &Before,
+        system: &mut dyn System,
+        folder: &Path,
+    ) -> Result<Option<PathBuf>, Problem> {
+        let Some((target, Some(content))) = &before.file else { return Ok(None) };
+        let name = target.display().to_string().replace('/', "-");
+        let backup = folder.join("backups").join(format!("{tweak}-{step}-{}{name}", now()));
+        system.write(&backup, content, false)?;
+        Ok(Some(backup))
+    }
+
+    /// Remembers one step that has just run, given with its place in its tweak: the file it
+    /// wrote, with the digest of what is in it now, and the backup [`Journal::keep_backup`]
+    /// kept of it.
+    ///
+    /// # Errors
+    ///
+    /// Fails when the file the step wrote cannot be read back.
     pub fn record(
         &mut self,
         tweak: &str,
-        step: usize,
-        undo: &Undo,
+        step: (usize, &Step),
+        before: &Before,
+        backup: Option<PathBuf>,
         system: &mut dyn System,
-        folder: &Path,
-    ) -> io::Result<()> {
-        let mut entry = Applied {
-            tweak: tweak.to_owned(),
-            step,
-            backup: None,
-            target: None,
-            undo: undo.command.as_ref().map(Cmd::argv),
-            hash: None,
-        };
-        if let Some((target, before)) = &undo.file {
-            let name = target.display().to_string().replace('/', "-");
-            let backup = folder.join("backups").join(format!("{tweak}-{step}{name}"));
-            if let Some(before) = before {
-                system.write(&backup, before, false)?;
-                entry.backup = Some(backup);
+    ) -> Result<(), Problem> {
+        let (index, step) = step;
+        let mut entry =
+            Applied { tweak: tweak.to_owned(), step: index, backup, target: None, when: Some(now()), hash: None };
+        if let Some((target, _)) = &before.file {
+            if step.keeps_tripwire() {
+                entry.hash = system.read(target)?.as_deref().map(digest);
             }
-            entry.hash = system.read(target)?.as_deref().map(digest);
             entry.target = Some(target.clone());
         }
         self.entries.push(entry);
@@ -152,10 +173,24 @@ impl Journal {
         self.entries.iter().filter(|entry| entry.tweak == tweak).collect()
     }
 
-    /// Drops a tweak's entries, once it has been undone.
-    pub fn forget(&mut self, tweak: &str) {
-        self.entries.retain(|entry| entry.tweak != tweak);
+    /// Whether anything of this tweak is on record, which is what makes it something qtools
+    /// can undo.
+    pub fn has(&self, tweak: &str) -> bool {
+        self.entries.iter().any(|entry| entry.tweak == tweak)
     }
+
+    /// Drops one step of a tweak, once it has been undone, so an undo that stops halfway
+    /// leaves on record exactly the steps that are still on the machine.
+    pub fn remove(&mut self, tweak: &str, step: usize) {
+        if let Some(at) = self.entries.iter().rposition(|entry| entry.tweak == tweak && entry.step == step) {
+            self.entries.remove(at);
+        }
+    }
+}
+
+/// Seconds since 1970, or zero on a clock set before it.
+fn now() -> u64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |since| since.as_secs())
 }
 
 #[cfg(test)]

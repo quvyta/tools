@@ -1,11 +1,13 @@
 //! What the person sees in the list: a named piece of work made of steps.
 
+use std::collections::HashMap;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-use crate::state::{Journal, digest};
-use crate::step::{Step, StepState, Touch};
-use crate::system::{Cmd, System};
+use crate::problem::Problem;
+use crate::state::{Applied, Journal, digest};
+use crate::step::{Before, Step, StepState, Touch};
+use crate::system::System;
 
 /// The five groups in the sidebar.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -79,21 +81,39 @@ pub enum TweakState {
     Applied,
     /// No step is done.
     Off,
-    /// Some steps are done and some are not.
-    Half,
-    /// A step was changed by something else; the text says what was found.
-    Changed(String),
+    /// Some steps are done and some are not; one flag per step, in order, says which, so the
+    /// confirmation counts only the steps a run would still carry out.
+    Half(Vec<bool>),
+    /// A step was changed by something else; the problem says what was found.
+    Changed(Problem),
     /// This tweak does not fit this machine; the language key says why.
     Unavailable(&'static str),
+    /// Where this tweak stands could not be read; the problem says what stopped the reading.
+    /// It may still be applied: the run reads every step again, and leaves alone what is done.
+    Unknown(Problem),
+}
+
+impl TweakState {
+    /// Whether the step at `index` is done, as far as this reading tells: `None` when it does not
+    /// say, which is the case for a tweak that was changed, does not fit or could not be read.
+    pub fn step_done(&self, index: usize) -> Option<bool> {
+        match self {
+            Self::Applied => Some(true),
+            Self::Off => Some(false),
+            Self::Half(done) => done.get(index).copied(),
+            Self::Changed(_) | Self::Unavailable(_) | Self::Unknown(_) => None,
+        }
+    }
 }
 
 /// A step that failed, and why.
 #[derive(Debug, Clone)]
 pub struct ApplyFailure {
-    /// Which step failed, counted from zero.
-    pub step: usize,
-    /// What went wrong, in the system's own words.
-    pub reason: String,
+    /// Which step failed, counted from zero; `None` when the tweak was refused before its first
+    /// step.
+    pub step: Option<usize>,
+    /// What went wrong.
+    pub reason: Problem,
 }
 
 /// One entry in the catalog.
@@ -117,18 +137,31 @@ impl Tweak {
         if let Availability::No(reason) = (self.applies_to)(system) {
             return Ok(TweakState::Unavailable(reason));
         }
-        let mut done = 0;
+        let mut done = Vec::with_capacity(self.steps.len());
         for step in &self.steps {
             match step.state(system)? {
-                StepState::Done => done += 1,
-                StepState::Missing => {}
+                StepState::Done => done.push(true),
+                StepState::Missing => done.push(false),
                 StepState::Conflict(found) => return Ok(TweakState::Changed(found)),
             }
         }
-        Ok(match done {
-            0 => TweakState::Off,
-            n if n == self.steps.len() => TweakState::Applied,
-            _ => TweakState::Half,
+        Ok(if !done.contains(&true) {
+            TweakState::Off
+        } else if !done.contains(&false) {
+            TweakState::Applied
+        } else {
+            TweakState::Half(done)
+        })
+    }
+
+    /// Where this tweak stands, for the screen: a reading that fails is a state of its own rather
+    /// than a tweak that looks off, which would offer to apply something already done.
+    pub fn reading(&self, system: &mut dyn System) -> TweakState {
+        self.state(system).unwrap_or_else(|error| {
+            TweakState::Unknown(match Problem::from_io(&error) {
+                Problem::RootToRead => Problem::RootToRead,
+                other => Problem::Unreadable(Box::new(other)),
+            })
         })
     }
 
@@ -138,74 +171,162 @@ impl Tweak {
     }
 
     /// Runs every step in order, remembering each one. Stops at the first failure.
+    ///
+    /// Each step's backup is on disk before the step touches the machine, and the journal is
+    /// on disk before the next step starts: a run that is cut short — a failure, a closed
+    /// terminal, `ctrl c` at the password — leaves on record every step it finished, so all of
+    /// them can be undone.
+    ///
+    /// # Errors
+    ///
+    /// Returns the step that failed and why, or no step when the tweak does not fit this machine.
     pub fn apply(&self, system: &mut dyn System, journal: &mut Journal, folder: &Path) -> Result<(), ApplyFailure> {
+        // The screen never offers a tweak that does not fit; the command line is held to the same
+        // rule here, at the one door both of them go through.
+        if let Availability::No(reason) = (self.applies_to)(system) {
+            return Err(ApplyFailure { step: None, reason: Problem::DoesNotFit(reason) });
+        }
         for (index, step) in self.steps.iter().enumerate() {
+            let fail = |reason: Problem| ApplyFailure { step: Some(index), reason };
             match step.state(system) {
                 Ok(StepState::Done) => continue,
                 Ok(StepState::Missing) => {}
-                Ok(StepState::Conflict(found)) => return Err(ApplyFailure { step: index, reason: found }),
-                Err(error) => return Err(ApplyFailure { step: index, reason: error.to_string() }),
+                Ok(StepState::Conflict(found)) => return Err(fail(found)),
+                Err(error) => return Err(fail(error.into())),
             }
-            let undo = step.apply(system).map_err(|error| ApplyFailure { step: index, reason: error.to_string() })?;
-            journal
-                .record(self.id, index, &undo, system, folder)
-                .map_err(|error| ApplyFailure { step: index, reason: error.to_string() })?;
+            let before = step.before(system).map_err(fail)?;
+            let backup = Journal::keep_backup(self.id, index, &before, system, folder).map_err(fail)?;
+            step.apply(system, &before).map_err(fail)?;
+            if let Err(why) = journal.record(self.id, (index, step), &before, backup, system) {
+                return Err(fail(put_back(step, &before, system, why)));
+            }
+            if let Err(why) = journal.save(system, folder) {
+                journal.remove(self.id, index);
+                return Err(fail(put_back(step, &before, system, why.into())));
+            }
         }
         Ok(())
     }
 
-    /// Puts every applied step back, newest first, and forgets them.
-    pub fn revert(&self, system: &mut dyn System, journal: &mut Journal) -> io::Result<()> {
-        let entries: Vec<_> = journal.entries(self.id).into_iter().cloned().collect();
-        for entry in entries.iter().rev() {
-            if let (Some(target), backup) = (&entry.target, &entry.backup) {
-                if let Some(hash) = &entry.hash {
-                    // The file may have been changed by the person, or by another tweak
-                    // that shares it, since qtools wrote it; the digest is the tripwire.
-                    // Nothing is touched and nothing is undone when it no longer matches.
-                    let current = system.read(target)?;
-                    if current.as_deref().map(digest).as_ref() != Some(hash) {
-                        return Err(io::Error::other(format!(
-                            "{} changed after qtools wrote it; revert stopped before touching it",
-                            target.display()
-                        )));
-                    }
-                }
-                match backup {
-                    Some(backup) => {
-                        let saved = system.read(backup)?.unwrap_or_default();
-                        system.write(target, &saved, true)?;
-                    }
-                    // The file was not there before qtools wrote it.
-                    None => system.remove(target, true)?,
-                }
-            }
-            if let Some(argv) = &entry.undo {
-                // The argv comes from `applied.toml`, which is on disk and can be
-                // truncated or hand-edited; a broken entry is a diagnostic, not a panic.
-                let broken = || {
-                    io::Error::other(format!(
-                        "the journal entry for `{}` step {} has no undo command",
-                        self.id, entry.step
-                    ))
-                };
-                let command = match argv.split_first() {
-                    Some((program, rest)) if program == "sudo" => match rest.split_first() {
-                        Some((program, args)) => Cmd::new(program, args.to_vec()).root(),
-                        None => return Err(broken()),
-                    },
-                    Some((program, args)) => Cmd::new(program, args.to_vec()),
-                    None => return Err(broken()),
-                };
-                let output = system.run(&command)?;
-                if !output.ok() {
-                    return Err(io::Error::other(output.stderr));
-                }
-            }
+    /// Puts every applied step back, newest first, dropping each from the journal as soon as it
+    /// is undone.
+    ///
+    /// Everything that can be checked is checked before anything is touched: that each record
+    /// matches the catalog's step, that no file was changed after qtools wrote it, and that
+    /// every backup is still there. Then every file goes back first and the undo commands run
+    /// after them, so a command that reads a file this tweak wrote — a rebuild from the
+    /// configuration, say — sees the file as it was rather than as qtools left it. The journal
+    /// is written after each step, so an undo that stops halfway can simply be asked again and
+    /// does what is left.
+    ///
+    /// # Errors
+    ///
+    /// Returns what stopped the undo; the steps not yet undone stay on record.
+    pub fn revert(&self, system: &mut dyn System, journal: &mut Journal, folder: &Path) -> Result<(), Problem> {
+        let entries: Vec<Applied> = journal.entries(self.id).into_iter().cloned().collect();
+        if entries.is_empty() {
+            return Err(Problem::NothingRecorded);
         }
-        journal.forget(self.id);
+        // What each file will hold once the newer records of it are undone, as a digest: the
+        // steps of one tweak may write the same file one after another, and each step's digest
+        // is of the file as that step left it, which is what the newer step's backup holds.
+        let mut after_newer: HashMap<PathBuf, Option<String>> = HashMap::new();
+        for entry in entries.iter().rev() {
+            self.check(entry, system, &mut after_newer)?;
+        }
+        for entry in entries.iter().rev() {
+            let Some(target) = &entry.target else { continue };
+            match &entry.backup {
+                Some(backup) => {
+                    let saved = system
+                        .read(backup)?
+                        .ok_or_else(|| Problem::BackupMissing { file: target.clone(), backup: backup.clone() })?;
+                    system.write(target, &saved, true)?;
+                }
+                // The file was not there before qtools wrote it.
+                None => system.remove(target, true)?,
+            }
+            journal.remove(self.id, entry.step);
+            journal.save(system, folder)?;
+        }
+        for entry in entries.iter().rev() {
+            if entry.target.is_some() {
+                continue;
+            }
+            // A step that stays needs nothing undone; it only leaves the record.
+            if self.steps.get(entry.step).is_some_and(Step::stays_on_undo) {
+                journal.remove(self.id, entry.step);
+                journal.save(system, folder)?;
+                continue;
+            }
+            let command = self.steps.get(entry.step).and_then(Step::undo_command);
+            let command = command.ok_or(Problem::RecordDoesNotMatch { step: entry.step + 1 })?;
+            let output = system.run(&command)?;
+            if !output.ok() {
+                return Err(Problem::System(output.stderr));
+            }
+            journal.remove(self.id, entry.step);
+            journal.save(system, folder)?;
+        }
         Ok(())
     }
+
+    /// Whether one record can be undone, asked before anything is undone and newest first:
+    /// `after_newer` holds what each file will read once the newer records are undone, and is
+    /// moved on to what it will read once this one is.
+    fn check(
+        &self,
+        entry: &Applied,
+        system: &mut dyn System,
+        after_newer: &mut HashMap<PathBuf, Option<String>>,
+    ) -> Result<(), Problem> {
+        let mismatch = || Problem::RecordDoesNotMatch { step: entry.step + 1 };
+        let step = self.steps.get(entry.step).ok_or_else(mismatch)?;
+        let Some(target) = &entry.target else {
+            if step.stays_on_undo() {
+                return Ok(());
+            }
+            return step.undo_command().map(|_| ()).ok_or_else(mismatch);
+        };
+        // The target comes from `applied.toml`, which is on disk and can be edited; a file the
+        // catalog's step never writes is not written to as root on its word.
+        if !step.may_write(target) {
+            return Err(mismatch());
+        }
+        let current = match after_newer.get(target) {
+            Some(digest) => digest.clone(),
+            None => system.read(target)?.as_deref().map(digest),
+        };
+        // The file may have been changed by the person, or by another tweak that shares it,
+        // since qtools wrote it; the digest is the tripwire.
+        if entry.hash.as_ref().is_some_and(|hash| current.as_ref() != Some(hash)) {
+            return Err(Problem::ChangedAfterWrite { file: target.clone() });
+        }
+        let restored = match &entry.backup {
+            // Without the backup there is nothing to put back; writing the file empty instead
+            // would break what reads it, `/etc/pacman.conf` first of all.
+            Some(backup) => Some(digest(
+                &system
+                    .read(backup)?
+                    .ok_or_else(|| Problem::BackupMissing { file: target.clone(), backup: backup.clone() })?,
+            )),
+            None => None,
+        };
+        after_newer.insert(target.clone(), restored);
+        Ok(())
+    }
+}
+
+/// Undoes a step that ran but could not be recorded, so nothing is left on the machine that
+/// qtools would not know to undo, and says whether that worked.
+fn put_back(step: &Step, before: &Before, system: &mut dyn System, why: Problem) -> Problem {
+    let undone: io::Result<bool> = match (&before.file, step.undo_command()) {
+        (Some((path, Some(content))), _) => system.write(path, content, true).map(|()| true),
+        (Some((path, None)), _) => system.remove(path, true).map(|()| true),
+        (None, Some(command)) => system.run(&command).map(|output| output.ok()),
+        (None, None) => Ok(false),
+    };
+    Problem::NotRecorded { why: Box::new(why), put_back: matches!(undone, Ok(true)) }
 }
 
 #[cfg(test)]

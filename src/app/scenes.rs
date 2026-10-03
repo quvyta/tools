@@ -13,7 +13,7 @@ const GLYPHS: GlyphMode = GlyphMode::Unicode;
 /// keeps the default). Runs point at a program that does not exist and states are read from
 /// the scene itself, so no scene can touch or read the machine even by accident.
 fn scene(states: Vec<TweakState>, theme: Option<&str>, width: u16, height: u16) -> Harness<Tools> {
-    let tools = Tools::new(states).machine(PathBuf::from("/nonexistent/qtools"), invented_states);
+    let tools = Tools::new(states, Cpu::Intel).machine(PathBuf::from("/nonexistent/qtools"), invented_reading);
     let mut h = Harness::with_env(tools, crate::locales::env(), width, height);
     h.set_locale("en").set_glyph_mode(GLYPHS).set_reduced_motion(true);
     if let Some(theme) = theme {
@@ -23,18 +23,26 @@ fn scene(states: Vec<TweakState>, theme: Option<&str>, width: u16, height: u16) 
 }
 
 /// A machine halfway through: some tweaks done, one half done, one changed by hand since, the
-/// rest not yet applied. Catalog order, as [`catalog::all`] lists it.
+/// rest not yet applied. Catalog order, as [`catalog::all`] lists it. The values in force are the
+/// recommended ones whoever asks, so a scene is the same machine after a run as before one.
+fn invented_reading(_: &Choices) -> Reading {
+    let states = invented_states();
+    let recorded = states.iter().map(|state| !matches!(state, TweakState::Off)).collect();
+    Reading { states, recorded }
+}
+
+/// Where the tweaks of [`invented_reading`] stand.
 fn invented_states() -> Vec<TweakState> {
-    let mut states = vec![TweakState::Off; catalog::all().len()];
+    let mut states = vec![TweakState::Off; catalog::all(Cpu::Intel).len()];
     for (id, state) in [
         ("mirrors", TweakState::Applied),
         ("pacman-options", TweakState::Applied),
-        ("multilib", TweakState::Half),
-        ("firewall", TweakState::Changed("ufw is inactive".to_owned())),
+        ("multilib", TweakState::Half(vec![true, false])),
+        ("firewall", TweakState::Changed(crate::problem::Problem::System("ufw is inactive".to_owned()))),
         ("ssh-hardening", TweakState::Applied),
         ("journal-limit", TweakState::Applied),
     ] {
-        let at = catalog::all().iter().position(|tweak| tweak.id == id).expect("the tweak is in the catalog");
+        let at = catalog::all(Cpu::Intel).iter().position(|tweak| tweak.id == id).expect("the tweak is in the catalog");
         states[at] = state;
     }
     states
@@ -42,7 +50,7 @@ fn invented_states() -> Vec<TweakState> {
 
 /// Moves focus to the tweaks list, so the selected row carries its focused pillar.
 fn focus_tweaks(h: &mut Harness<Tools>) {
-    for _ in 0..5 {
+    for _ in 0..8 {
         if h.is_focused("tweaks") {
             return;
         }

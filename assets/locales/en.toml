@@ -21,7 +21,7 @@ summary = "Downloads packages in parallel and shows colour and full version list
 
 [tweak.multilib]
 title = "Multilib repository"
-summary = "Adds the 32-bit repository, needed by Steam and by some drivers. It becomes usable after your next full upgrade (`pacman -Syu`)."
+summary = "Adds the 32-bit repository, needed by Steam and by some drivers. Its packages can be installed after your next full system upgrade."
 
 [tweak.aur-helper]
 title = "AUR helper"
@@ -43,9 +43,13 @@ summary = "Caps how much disk the system log may use, through a drop-in of its o
 title = "Time sync"
 summary = "Keeps the clock right with the time service systemd ships."
 
+[tweak.microcode]
+title = "Processor microcode"
+summary = "Installs your processor's microcode and adds mkinitcpio's `microcode` hook to the initramfs, so your bootloader is not touched. It is loaded at the next boot; the rebuild takes about a minute."
+
 [tweak.zram-swap]
 title = "Compressed swap in RAM"
-summary = "Adds a compressed swap device in RAM, sized to half your memory, on top of any swap you already have. It becomes active at the next boot or the next start of the zram service."
+summary = "Adds a compressed swap device in RAM, half the size of your memory and at most 8 GB, on top of any swap you already have. It becomes active at the next boot or the next start of the zram service."
 
 [tweak.bluetooth]
 title = "Bluetooth"
@@ -57,15 +61,19 @@ summary = "Installs tlp and turns it on, at its own defaults. It steps aside on 
 
 [tweak.nvidia-wayland]
 title = "NVIDIA and Wayland"
-summary = "Enables NVIDIA's kernel modesetting and its suspend hand-off services, needed for a smooth Wayland session. It takes effect at the next boot; if the nvidia module is built into your initramfs, run `mkinitcpio -P` as well."
+summary = "Enables NVIDIA's kernel modesetting and its suspend hand-off services, needed for a smooth Wayland session, and rebuilds the initramfs so the setting is in it too. It takes effect at the next boot; the rebuild takes about a minute."
 
 [tweak.firewall]
 title = "Firewall"
-summary = "Installs ufw and turns it on: incoming connections are blocked, outgoing ones are allowed. qtools opens nothing, so SSH and any other service that must stay reachable needs its own ufw allow rule."
+summary = "Installs ufw and turns it on: incoming connections are blocked, outgoing ones are allowed. qtools opens nothing, SSH included, so a machine you reach over SSH stops taking new connections; apply this one at the machine itself."
+
+[tweak.firewall-ssh]
+title = "SSH through the firewall"
+summary = "Adds one firewall rule that lets SSH in on port 22, so the firewall can be on while you still reach this machine remotely. A rule you made yourself is left alone, and undoing removes only the rule qtools added."
 
 [tweak.ssh-hardening]
 title = "SSH hardening"
-summary = "Turns off password and root logins over SSH in a drop-in of its own. Takes effect at the next sshd restart; from then on only keys get in, so on a machine you reach remotely make sure your key is already in place."
+summary = "Turns off password and root logins over SSH in a drop-in of its own. sshd reads it when it next starts, at the next boot for instance; from then on only keys get in, so on a machine you reach remotely make sure your key is already in place."
 
 [tweak.qt-gtk-match]
 title = "Qt matches GTK"
@@ -89,13 +97,19 @@ summary = "Makes the Noto family the system default for sans, serif and monospac
 "other-time-service" = "Another time service keeps the clock"
 
 "no-openssh" = "openssh is not installed"
+"no-ufw" = "The firewall (ufw) is not installed"
 "no-graphical-session" = "No graphical session on this machine"
+
+"no-cpu-microcode" = "No microcode package for this processor"
+"no-mkinitcpio" = "No /etc/mkinitcpio.conf on this machine"
+"mkinitcpio-too-old" = "This mkinitcpio has no microcode hook"
 
 "no-bluetooth" = "No Bluetooth controller on this machine"
 "no-battery" = "No battery on this machine"
 "power-profiles-daemon" = "power-profiles-daemon already manages power"
 "no-nvidia" = "No NVIDIA card on this machine"
 "no-nvidia-driver" = "The NVIDIA driver is not installed"
+"ufw-rules-unreadable" = "The firewall's rules (/etc/ufw/user.rules) cannot be read"
 
 [header]
 tagline = "Recommended Arch Linux settings"
@@ -105,13 +119,16 @@ applied = "Applied"
 off = "Off"
 half = "Half"
 changed = "Changed"
+unknown = "Unknown"
 
 [detail]
 touches = "Touches"
 
 [touch]
 package = "package"
+"needed-package" = "package, stays when undone"
 service = "service"
+unit = "service, runs when it is needed"
 command = "command"
 
 [hints]
@@ -120,16 +137,40 @@ toggle = "check"
 apply = "apply"
 change = "change"
 
+# The command palette: one row for what a key or a click does from where the screen stands.
+# {tweak} is the chosen item's title.
+[palette]
+apply = "Apply: {tweak}"
+mark = "Check: {tweak}"
+unmark = "Uncheck: {tweak}"
+undo = "Undo: {tweak}"
+options = "Options: {tweak}"
+"show-detail" = "Show the detail panel"
+"hide-detail" = "Hide the detail panel"
+quit = "Quit"
+
 [confirm]
 "apply.title" = "Apply this?"
 apply = "Apply"
 "revert.title" = "Undo this?"
 revert = "Undo"
 cancel = "Cancel"
+backups = "Every file listed that already exists is copied to {folder} first, so it can be undone."
 "password-steps" = { one = "{n} step will ask for your password.", other = "{n} steps will ask for your password." }
 
 [revert]
 button = "Undo"
+
+# The options form of a tweak that has options. {min} and {max} are the range its number allows.
+[form]
+title = "Options"
+button = "Options"
+save = "Save"
+cancel = "Cancel"
+"country-bad" = "Use 2 to 60 letters, with spaces, commas or hyphens."
+"count-bad" = "Enter a number between {min} and {max}."
+"helper-bad" = "Choose paru or yay."
+"not-saved" = "The values could not be saved, so they were not used"
 
 [run]
 applying = "Applying {tweak}"
@@ -139,17 +180,21 @@ done = "Done"
 failed = "It failed"
 "failed-body" = "The output says why. What was done before the failure can still be undone."
 
-# The Settings page: the shared Quvyta appearance rows and its update notice.
+# The Settings page: the shared Quvyta appearance rows, its update notice and qtools' own
+# "ask for the password once" switch.
 [settings]
 title = "Settings"
 "not-saved" = "The setting could not be saved, so it was put back"
+"password-once" = "Ask for the password once while qtools is open"
+"password-once-text" = "The password is never written to a file, and the permission ends when qtools closes."
 
 [keys]
 revert = "undo"
+options = "options"
 "close-run" = "close"
 
 [cli]
-usage = "Usage: qtools, qtools --run <tweak>..., qtools --revert <tweak>..."
+usage = "Usage: qtools, qtools --run <tweak>..., qtools --revert <tweak>..., qtools --help, qtools --version"
 "unknown-argument" = "Unknown argument: {argument}"
 "unknown-tweak" = "No tweak is called {id}."
 applying = "Applying {tweak}"
@@ -158,6 +203,40 @@ done = "done"
 failed = "failed: {reason}"
 "step-failed" = "step {step} failed: {reason}"
 stopped = "The remaining tweaks were not run."
+
+# What stopped a step or an undo. {file}, {backup} and {folder} are paths; {found} and {said}
+# are the machine's own text, shown as it is.
+[problem]
+"file-missing" = "{file} does not exist."
+"section-missing" = "{file} has no [{section}] section."
+"option-differs" = "{file} already sets {key} to {found}."
+"file-differs" = "{file} holds something else; line {line} reads: {found}"
+"file-ends" = "{file} holds something else; it ends before line {line}."
+"list-not-set" = "{key} is set neither in {file} nor in {folder}."
+"list-unreadable" = "{key} is set in {file}, but that file cannot be read now."
+"list-not-understood" = "{file} sets the list in a way qtools does not change: {found}"
+"list-not-in-file" = "{file} no longer sets the list."
+"changed-after-write" = "{file} was changed after qtools wrote it, so it was left as it is and nothing was undone."
+"backup-missing" = "The backup of {file} is gone ({backup}), so the file was left as it is and nothing was undone."
+"nothing-recorded" = "qtools did not do this one, so it has nothing to undo."
+"record-does-not-match" = "qtools' record of step {step} does not match this item any more, so nothing was undone."
+"not-recorded" = "The change could not be recorded, so it was put back: {why}"
+"not-recorded-left" = "The change could not be recorded, nor put back, so it is still on the machine: {why}"
+"write-refused" = "{file} could not be written."
+"write-refused-said" = "{file} could not be written: {said}"
+"root-to-read" = "Only root can read whether this is done. When you apply it, qtools looks first, after your password, and leaves alone whatever is already there."
+"unreadable" = "qtools could not read where this one stands: {why}"
+
+# The session that holds one terminal for a whole qtools: the process that carries the runs out,
+# and the screen's side of it. {channel} is where the control channel would be, {reason} what the
+# machine said about it.
+[session]
+"no-folder" = "There is nowhere on this machine to keep a session's control channel, so the password will be asked for every run."
+"unknown-request" = "The session was asked for something else and did nothing."
+"channel-failed" = "The session could not open its control channel {channel}: {reason}"
+"channel-not-made" = "The control channel could not be made, so this run has a terminal of its own: {reason}"
+"not-asked" = "The session that keeps one terminal for the whole qtools has ended, so this run has a terminal of its own: {reason}"
+"gone" = "The session that keeps one terminal for the whole qtools has ended, so this run was not carried out."
 
 [unsupported]
 title = "Only Arch Linux for now"
@@ -170,3 +249,4 @@ intro = "qtools changes how your system is set up, so it keeps three promises."
 touches = "Every item shows what it will touch before anything runs."
 confirm = "Nothing runs until you confirm. It runs in a terminal on screen, where you type your own password."
 undo = "An applied item can be undone with {key}, from the backup qtools keeps in {folder}."
+"undo-unbound" = "An applied item can be undone from its detail, from the backup qtools keeps in {folder}."

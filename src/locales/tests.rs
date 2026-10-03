@@ -129,6 +129,64 @@ fn every_language_carries_every_english_key_and_nothing_else() {
     }
 }
 
+/// The values a language may write exactly as English does: names that are not translated
+/// (`paru`, `Bluetooth`) and words the language really says the same way. Anything else that
+/// reads like English in another file is an English copy left behind for a translation that
+/// never came.
+const SAME_AS_ENGLISH: &[(&str, &str)] = &[
+    ("*", "option.aur.paru"),
+    ("*", "option.aur.yay"),
+    ("*", "tweak.bluetooth.title"),
+    ("de", "group.hardware"),
+    ("es", "group.hardware"),
+    ("pt-BR", "group.hardware"),
+    ("de", "tweak.firewall.title"),
+    ("pt-BR", "tweak.firewall.title"),
+    ("fr", "touch.service"),
+    // The options form and its key hint are called `Options` in French too, the way `service`
+    // is the same word in both.
+    ("fr", "form.title"),
+    ("fr", "form.button"),
+    ("fr", "keys.options"),
+    ("tr", "tweak.ssd-trim.title"),
+];
+
+/// Whether a text has anything to translate once its placeholders are taken out.
+fn has_words(text: &str) -> bool {
+    let mut bare = text.to_owned();
+    for name in placeholders(text) {
+        bare = bare.replace(&format!("{{{name}}}"), "");
+    }
+    bare.chars().any(char::is_alphabetic)
+}
+
+#[test]
+fn every_language_speaks_its_own_words() {
+    // Key completeness says nothing about the language a value is in: a file of English copies
+    // passes it. This one reads the values themselves.
+    let english = english();
+    for file in files().into_iter().filter(|file| file.code != "en") {
+        let copied: Vec<&String> = english
+            .entries
+            .iter()
+            .filter(|(key, value)| {
+                let same = match (value, file.entries.get(*key)) {
+                    (Entry::Plain(en), Some(Entry::Plain(own))) => en == own && has_words(en),
+                    (Entry::Plural(en), Some(Entry::Plural(own))) => {
+                        own.values().any(|text| has_words(text) && en.values().any(|en| en == text))
+                    }
+                    _ => false,
+                };
+                same && !SAME_AS_ENGLISH
+                    .iter()
+                    .any(|(code, allowed)| (*code == "*" || *code == file.code) && allowed == key)
+            })
+            .map(|(key, _)| key)
+            .collect();
+        assert!(copied.is_empty(), "`{}` still says these in English: {copied:?}", file.code);
+    }
+}
+
 #[test]
 fn every_translation_keeps_the_english_placeholders() {
     let english = english();

@@ -42,3 +42,47 @@ fn files_written_to_the_fake_system_can_be_read_back() {
     system.remove(path, true).expect("removing is allowed");
     assert_eq!(system.read(path).expect("reading is allowed"), None);
 }
+
+/// A folder of the test's own under the system's temporary folder, taken away at the end.
+struct Scratch(std::path::PathBuf);
+
+impl Scratch {
+    fn new(name: &str) -> Self {
+        let path = std::env::temp_dir().join(format!("qtools-system-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&path);
+        std::fs::create_dir_all(&path).expect("the scratch folder is made");
+        Self(path)
+    }
+}
+
+impl Drop for Scratch {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+// `/etc/systemd/journald.conf.d` and `/etc/environment.d` belong to no package, so a clean Arch
+// has neither, and the file a tweak writes there is the first thing in its folder. The write
+// that needs root makes the folder itself, the way the write that does not always did.
+#[test]
+fn a_root_write_into_a_folder_that_is_not_there_yet_makes_the_folder() {
+    let scratch = Scratch::new("root-folder");
+    let path = scratch.0.join("journald.conf.d/50-quvyta-tools.conf");
+    let mut system = RealSystem::elevated_by(&[]);
+
+    system.write(&path, "[Journal]\nSystemMaxUse=500M\n", true).expect("the folder is made and the file written");
+
+    assert_eq!(std::fs::read_to_string(&path).expect("the file is there"), "[Journal]\nSystemMaxUse=500M\n");
+}
+
+#[test]
+fn a_root_write_over_a_file_keeps_its_folder_and_replaces_the_content() {
+    let scratch = Scratch::new("root-over");
+    let path = scratch.0.join("pacman.conf");
+    std::fs::write(&path, "[options]\nColor\nVerbosePkgLists\n").expect("the file is set up");
+    let mut system = RealSystem::elevated_by(&[]);
+
+    system.write(&path, "[options]\n", true).expect("the file is written");
+
+    assert_eq!(std::fs::read_to_string(&path).expect("the file is there"), "[options]\n");
+}

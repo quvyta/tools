@@ -21,7 +21,7 @@ summary = "Lädt Pakete parallel herunter und zeigt Farben und vollständige Ver
 
 [tweak.multilib]
 title = "Multilib-Repository"
-summary = "Fügt das 32-Bit-Repository hinzu, das Steam und einige Treiber brauchen. Nutzbar wird es nach dem nächsten vollständigen Upgrade (`pacman -Syu`)."
+summary = "Fügt das 32-Bit-Repository hinzu, das Steam und manche Treiber brauchen. Seine Pakete lassen sich nach deinem nächsten vollständigen Systemupdate installieren."
 
 [tweak.aur-helper]
 title = "AUR-Helfer"
@@ -43,9 +43,13 @@ summary = "Begrenzt über eine eigene Drop-in-Datei, wie viel Platz das Systempr
 title = "Zeitsynchronisation"
 summary = "Hält die Uhr mit dem Zeitdienst von systemd genau."
 
+[tweak.microcode]
+title = "Prozessor-Microcode"
+summary = "Installiert den Microcode deines Prozessors und fügt den `microcode`-Hook von mkinitcpio zum initramfs hinzu, ohne den Bootloader anzufassen. Geladen wird er beim nächsten Systemstart; der Neubau dauert etwa eine Minute."
+
 [tweak.zram-swap]
 title = "Komprimierter Swap im RAM"
-summary = "Fügt ein komprimiertes Swap-Gerät im RAM hinzu, halb so groß wie dein Speicher, zusätzlich zu vorhandenem Swap. Wirksam ab dem nächsten Systemstart oder dem nächsten Start des zram-Diensts."
+summary = "Legt einen komprimierten Swap im RAM an, halb so groß wie dein Arbeitsspeicher und höchstens 8 GB, zusätzlich zu jedem Swap, den du schon hast. Aktiv ab dem nächsten Start oder dem nächsten Start des zram-Dienstes."
 
 [tweak.bluetooth]
 title = "Bluetooth"
@@ -57,15 +61,15 @@ summary = "Installiert tlp und schaltet es mit seinen eigenen Standardwerten ein
 
 [tweak.nvidia-wayland]
 title = "NVIDIA und Wayland"
-summary = "Aktiviert das Kernel-Modesetting von NVIDIA und dessen Suspend-Dienste, nötig für eine reibungslose Wayland-Sitzung. Wirksam ab dem nächsten Systemstart; ist das nvidia-Modul ins initramfs eingebaut, muss zusätzlich `mkinitcpio -P` laufen."
+summary = "Aktiviert NVIDIAs Kernel-Modesetting und die Dienste für Ruhezustand und Aufwachen, die eine flüssige Wayland-Sitzung braucht, und baut das initramfs neu, damit die Einstellung auch dort ankommt. Wirksam ab dem nächsten Start; der Neubau dauert etwa eine Minute."
 
 [tweak.firewall]
 title = "Firewall"
-summary = "Installiert ufw und schaltet sie ein: Eingehende Verbindungen werden blockiert, ausgehende erlaubt. qtools öffnet nichts, daher braucht SSH und jeder andere Dienst, der erreichbar bleiben muss, eine eigene ufw-allow-Regel."
+summary = "Installiert ufw und schaltet es ein: eingehende Verbindungen werden blockiert, ausgehende erlaubt. qtools öffnet nichts, auch SSH nicht; ein Rechner, den du über SSH erreichst, nimmt dann keine neuen Verbindungen mehr an, also wende das direkt am Rechner an."
 
 [tweak.ssh-hardening]
 title = "SSH-Härtung"
-summary = "Schaltet Passwort- und Root-Anmeldungen über SSH in einer eigenen Drop-in-Datei ab. Wirksam ab dem nächsten Neustart von sshd; danach kommen nur noch Schlüssel hinein. Auf einem Rechner, den du aus der Ferne erreichst, sollte dein Schlüssel also schon hinterlegt sein."
+summary = "Schaltet Anmeldungen per Passwort und als root über SSH in einer eigenen Drop-in-Datei ab. sshd liest sie beim nächsten Start, etwa beim nächsten Hochfahren; danach kommen nur noch Schlüssel hinein, also stell auf einem Rechner, den du aus der Ferne erreichst, sicher, dass dein Schlüssel schon hinterlegt ist."
 
 [tweak.qt-gtk-match]
 title = "Qt folgt GTK"
@@ -89,13 +93,19 @@ summary = "Macht die Schriftfamilie Noto zum systemweiten Standard für serifenl
 "other-time-service" = "Ein anderer Zeitdienst stellt die Uhr"
 
 "no-openssh" = "openssh ist nicht installiert"
+"no-ufw" = "Die Firewall (ufw) ist nicht installiert"
 "no-graphical-session" = "Keine grafische Sitzung auf diesem Rechner"
+
+"no-cpu-microcode" = "Kein Microcode-Paket für diesen Prozessor"
+"no-mkinitcpio" = "Dieser Rechner hat keine /etc/mkinitcpio.conf"
+"mkinitcpio-too-old" = "Dieses mkinitcpio hat keinen microcode-Hook"
 
 "no-bluetooth" = "Kein Bluetooth-Controller in diesem Rechner"
 "no-battery" = "Kein Akku in diesem Rechner"
 "power-profiles-daemon" = "power-profiles-daemon verwaltet die Energie bereits"
 "no-nvidia" = "Keine NVIDIA-Karte in diesem Rechner"
 "no-nvidia-driver" = "Der NVIDIA-Treiber ist nicht installiert"
+"ufw-rules-unreadable" = "Die Firewall-Regeln (/etc/ufw/user.rules) können nicht gelesen werden"
 
 [header]
 tagline = "Empfohlene Einstellungen für Arch"
@@ -105,13 +115,16 @@ applied = "Aktiv"
 off = "Aus"
 half = "Teilweise"
 changed = "Geändert"
+unknown = "Unbekannt"
 
 [detail]
 touches = "Betrifft"
 
 [touch]
 package = "Paket"
+"needed-package" = "Paket, bleibt beim Rückgängigmachen"
 service = "Dienst"
+unit = "Dienst, läuft, wenn er gebraucht wird"
 command = "Befehl"
 
 [hints]
@@ -120,16 +133,40 @@ toggle = "wählen"
 apply = "anwenden"
 change = "ändern"
 
+# The command palette: one row for what a key or a click does from where the screen stands.
+# {tweak} is the chosen item's title.
+[palette]
+apply = "Anwenden: {tweak}"
+mark = "Auswählen: {tweak}"
+unmark = "Auswahl aufheben: {tweak}"
+undo = "Rückgängig machen: {tweak}"
+options = "Optionen: {tweak}"
+"show-detail" = "Detailbereich anzeigen"
+"hide-detail" = "Detailbereich ausblenden"
+quit = "Beenden"
+
 [confirm]
 "apply.title" = "Anwenden?"
 apply = "Anwenden"
 "revert.title" = "Rückgängig machen?"
 revert = "Rückgängig"
 cancel = "Abbrechen"
+backups = "Jede aufgeführte Datei, die schon existiert, wird vorher nach {folder} kopiert, damit sie sich rückgängig machen lässt."
 "password-steps" = { one = "{n} Schritt fragt nach deinem Passwort.", other = "{n} Schritte fragen nach deinem Passwort." }
 
 [revert]
 button = "Rückgängig"
+
+# The options form of a tweak that has options. {min} and {max} are the range its number allows.
+[form]
+title = "Optionen"
+button = "Optionen"
+save = "Speichern"
+cancel = "Abbrechen"
+"country-bad" = "Schreibe 2 bis 60 Buchstaben, auch mit Leerzeichen, Kommas oder Bindestrichen."
+"count-bad" = "Gib eine Zahl zwischen {min} und {max} ein."
+"helper-bad" = "Wähle paru oder yay."
+"not-saved" = "Die Werte konnten nicht gespeichert werden und wurden nicht verwendet"
 
 [run]
 applying = "{tweak} wird angewendet"
@@ -139,17 +176,21 @@ done = "Fertig"
 failed = "Fehlgeschlagen"
 "failed-body" = "Die Ausgabe nennt den Grund. Was vor dem Fehler erledigt wurde, lässt sich weiterhin rückgängig machen."
 
-# The Settings page: the shared Quvyta appearance rows and its update notice.
+# The Settings page: the shared Quvyta appearance rows, its update notice and qtools' own
+# "ask for the password once" switch.
 [settings]
 title = "Einstellungen"
 "not-saved" = "Die Einstellung konnte nicht gespeichert werden und wurde zurückgesetzt"
+"password-once" = "Das Passwort einmal fragen, solange qtools geöffnet ist"
+"password-once-text" = "Das Passwort wird nie in eine Datei geschrieben, und die Erlaubnis endet, wenn qtools geschlossen wird."
 
 [keys]
 revert = "rückgängig"
+options = "optionen"
 "close-run" = "schließen"
 
 [cli]
-usage = "Aufruf: qtools, qtools --run <tweak>..., qtools --revert <tweak>..."
+usage = "Aufruf: qtools, qtools --run <tweak>..., qtools --revert <tweak>..., qtools --help, qtools --version"
 "unknown-argument" = "Unbekanntes Argument: {argument}"
 "unknown-tweak" = "Es gibt keine Einstellung namens {id}."
 applying = "{tweak} wird angewendet"
@@ -158,6 +199,39 @@ done = "fertig"
 failed = "fehlgeschlagen: {reason}"
 "step-failed" = "Schritt {step} fehlgeschlagen: {reason}"
 stopped = "Die übrigen Einstellungen wurden nicht ausgeführt."
+
+# What stopped a step or an undo. {file}, {backup} and {folder} are paths; {found} and {said}
+# are the machine's own text, shown as it is.
+[problem]
+"file-missing" = "{file} gibt es nicht."
+"section-missing" = "{file} hat keinen Abschnitt [{section}]."
+"option-differs" = "{file} setzt {key} bereits auf {found}."
+"file-differs" = "{file} enthält etwas anderes; Zeile {line} lautet: {found}"
+"file-ends" = "{file} enthält etwas anderes; die Datei endet vor Zeile {line}."
+"list-not-set" = "{key} ist weder in {file} noch in {folder} gesetzt."
+"list-unreadable" = "{key} ist in {file} gesetzt, aber diese Datei lässt sich gerade nicht lesen."
+"list-not-understood" = "{file} setzt die Liste auf eine Art, die qtools nicht ändert: {found}"
+"list-not-in-file" = "{file} setzt die Liste nicht mehr."
+"changed-after-write" = "{file} wurde geändert, nachdem qtools sie geschrieben hat; sie bleibt, wie sie ist, und nichts wurde rückgängig gemacht."
+"backup-missing" = "Die Sicherung von {file} fehlt ({backup}); die Datei bleibt, wie sie ist, und nichts wurde rückgängig gemacht."
+"nothing-recorded" = "Das hat nicht qtools gemacht, also gibt es nichts rückgängig zu machen."
+"record-does-not-match" = "Der Eintrag von qtools zu Schritt {step} passt nicht mehr zu diesem Punkt; nichts wurde rückgängig gemacht."
+"not-recorded" = "Die Änderung konnte nicht vermerkt werden und wurde deshalb zurückgenommen: {why}"
+"not-recorded-left" = "Die Änderung konnte weder vermerkt noch zurückgenommen werden und ist noch auf dem Rechner: {why}"
+"write-refused" = "{file} konnte nicht geschrieben werden."
+"write-refused-said" = "{file} konnte nicht geschrieben werden: {said}"
+"root-to-read" = "Nur root kann lesen, ob das erledigt ist. Wenn du es anwendest, schaut qtools nach deiner Passworteingabe zuerst nach und lässt alles, was schon da ist, in Ruhe."
+"unreadable" = "qtools konnte nicht lesen, wo diese Einstellung gerade steht: {why}"
+# The session that holds one terminal for a whole qtools: the process that carries the runs out,
+# and the screen's side of it. {channel} is where the control channel would be, {reason} what the
+# machine said about it.
+[session]
+"no-folder" = "Auf dieser Maschine gibt es keinen Ort für den Steuerkanal einer Sitzung; das Passwort wird also bei jedem Lauf gefragt."
+"unknown-request" = "Der Sitzung wurde etwas anderes gefragt, und sie hat nichts getan."
+"channel-failed" = "Die Sitzung konnte ihren Steuerkanal {channel} nicht öffnen: {reason}"
+"channel-not-made" = "Der Steuerkanal konnte nicht angelegt werden, deshalb bekommt dieser Lauf ein eigenes Terminal: {reason}"
+"not-asked" = "Die Sitzung, die für das ganze qtools hinweg ein Terminal hält, ist beendet, deshalb bekommt dieser Lauf ein eigenes Terminal: {reason}"
+"gone" = "Die Sitzung, die für das ganze qtools hinweg ein Terminal hält, ist beendet, dieser Lauf wurde nicht ausgeführt."
 
 [unsupported]
 title = "Vorerst nur Arch Linux"
@@ -169,3 +243,8 @@ intro = "qtools ändert die Einrichtung deines Systems und hält sich deshalb an
 touches = "Jeder Eintrag zeigt, was er verändert, bevor irgendetwas ausgeführt wird."
 confirm = "Nichts läuft, bevor du bestätigst. Es läuft in einem Terminal auf dem Bildschirm, in dem du dein eigenes Passwort eingibst."
 undo = "Ein angewandter Eintrag lässt sich mit {key} rückgängig machen, aus dem Backup, das qtools in {folder} aufbewahrt."
+"undo-unbound" = "Ein angewendeter Punkt lässt sich in seinen Details rückgängig machen, aus der Sicherung, die qtools in {folder} aufbewahrt."
+
+[tweak.firewall-ssh]
+title = "SSH durch die Firewall"
+summary = "Fügt eine Firewall-Regel hinzu, die SSH auf Port 22 zulässt, damit die Firewall aktiv bleibt, während du diesen Rechner weiterhin aus der Ferne erreichst. Eine selbst erstellte Regel wird nicht angefasst, und beim Rückgängigmachen wird nur die von qtools hinzugefügte Regel entfernt."

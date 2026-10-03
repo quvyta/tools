@@ -21,7 +21,7 @@ summary = "Paketleri paralel indirir, çıktıyı renkli ve ayrıntılı göster
 
 [tweak.multilib]
 title = "Multilib deposu"
-summary = "Steam ve bazı sürücülerin ihtiyaç duyduğu 32 bit depoyu ekler; bir sonraki `pacman -Syu` ile birlikte kullanılabilir hâle gelir."
+summary = "Steam ve bazı sürücülerin ihtiyaç duyduğu 32 bit depoyu ekler. Paketleri bir sonraki tam sistem güncellemesinden sonra kurulabilir."
 
 [tweak.aur-helper]
 title = "AUR yardımcısı"
@@ -43,9 +43,13 @@ summary = "Sistem günlüğünün diskte kaplayabileceği alanı kendi ek dosyas
 title = "Zaman eşitleme"
 summary = "Saati systemd'nin kendi zaman servisiyle doğru tutar."
 
+[tweak.microcode]
+title = "İşlemci mikrokodu"
+summary = "İşlemcinin mikrokodunu kurar ve mkinitcpio'nun `microcode` kancasını initramfs'e ekler, böylece önyükleyicine dokunulmaz. Bir sonraki açılışta yüklenir; initramfs'i yeniden kurmak yaklaşık bir dakika sürer."
+
 [tweak.zram-swap]
 title = "RAM'de sıkıştırılmış takas"
-summary = "Belleğinin yarısı büyüklüğünde, RAM içinde sıkıştırılmış bir takas alanı ekler; var olan takas alanına dokunmaz, ona ek gelir. Bir sonraki açılışta ya da zram servisi yeniden başlayınca etkin olur."
+summary = "Belleğinin yarısı büyüklüğünde, en fazla 8 GB, RAM içinde sıkıştırılmış bir takas alanı ekler; var olan takas alanına dokunmaz, ona ek gelir. Bir sonraki açılışta ya da zram servisi yeniden başlayınca etkin olur."
 
 [tweak.bluetooth]
 title = "Bluetooth"
@@ -57,15 +61,19 @@ summary = "tlp'yi kurar ve kendi varsayılanlarıyla açar. power-profiles-daemo
 
 [tweak.nvidia-wayland]
 title = "NVIDIA ve Wayland"
-summary = "Wayland oturumunun düzgün çalışması için NVIDIA'nın kip ayarını (modesetting) ve uyku sonrası servislerini etkinleştirir. Bir sonraki açılışta geçerli olur; nvidia modülü initramfs içindeyse ayrıca `mkinitcpio -P` çalıştırılmalıdır."
+summary = "Wayland oturumunun düzgün çalışması için NVIDIA'nın kip ayarını (modesetting) ve uyku sonrası servislerini etkinleştirir, ayar initramfs'e de girsin diye onu yeniden kurar. Bir sonraki açılışta geçerli olur; yeniden kurmak bir dakika kadar sürer."
 
 [tweak.firewall]
 title = "Güvenlik duvarı"
-summary = "ufw'yi kurar ve açar: dışarıdan gelen bağlantılar engellenir, dışarıya gidenler serbesttir. qtools hiçbir kapı açmaz; SSH gibi dışarıdan erişilmesi gereken her servis için ayrıca bir ufw allow kuralı gerekir."
+summary = "ufw'yi kurar ve açar: dışarıdan gelen bağlantılar engellenir, dışarıya gidenler serbesttir. qtools SSH dahil hiçbir kapı açmaz; SSH ile bağlandığın bir makine yeni bağlantı almaz olur, bunu makinenin başındayken uygula."
+
+[tweak.firewall-ssh]
+title = "Güvenlik duvarında SSH"
+summary = "Güvenlik duvarına SSH'nin 22. kapıdan girmesine izin veren tek bir kural ekler; böylece duvar açıkken bu makineye uzaktan bağlanmaya devam edebilirsin. Senin eklediğin bir kurala dokunmaz, geri alınca da yalnızca kendi eklediği kuralı siler."
 
 [tweak.ssh-hardening]
 title = "SSH sıkılaştırma"
-summary = "SSH'de parolayla girişi ve root girişini kendi ek dosyasıyla kapatır. sshd bir sonraki yeniden başlatılışında geçerli olur; o andan sonra yalnızca anahtarla girilebilir, bu yüzden uzaktan bağlandığınız bir makinede anahtarınızın önceden yüklü olduğundan emin olun."
+summary = "SSH'de parolayla girişi ve root girişini kendi ek dosyasıyla kapatır. sshd bu dosyayı bir sonraki başlayışında, örneğin bir sonraki açılışta okur; o andan sonra yalnızca anahtarla girilebilir, bu yüzden uzaktan bağlandığın bir makinede anahtarının önceden yüklü olduğundan emin ol."
 
 [tweak.qt-gtk-match]
 title = "Qt, GTK'ye uyar"
@@ -89,13 +97,19 @@ summary = "Noto yazı tipi ailesini sistem genelinde düz, tırnaklı ve eş ara
 "other-time-service" = "Saati başka bir zaman servisi tutuyor"
 
 "no-openssh" = "openssh kurulu değil"
+"no-ufw" = "Güvenlik duvarı (ufw) kurulu değil"
 "no-graphical-session" = "Bu makinede grafik oturumu yok"
+
+"no-cpu-microcode" = "Bu işlemci için mikrokod paketi yok"
+"no-mkinitcpio" = "Bu makinede /etc/mkinitcpio.conf yok"
+"mkinitcpio-too-old" = "Bu mkinitcpio'da microcode kancası yok"
 
 "no-bluetooth" = "Bu makinede Bluetooth denetleyicisi yok"
 "no-battery" = "Bu makinede pil yok"
 "power-profiles-daemon" = "Güç yönetimini zaten power-profiles-daemon yapıyor"
 "no-nvidia" = "Bu makinede NVIDIA kartı yok"
 "no-nvidia-driver" = "NVIDIA sürücüsü kurulu değil"
+"ufw-rules-unreadable" = "Güvenlik duvarının kuralları (/etc/ufw/user.rules) okunamıyor"
 
 [header]
 tagline = "Arch için önerilen ayarlar"
@@ -105,13 +119,16 @@ applied = "Uygulandı"
 off = "Kapalı"
 half = "Yarım"
 changed = "Değişti"
+unknown = "Bilinmiyor"
 
 [detail]
 touches = "Dokunduğu yerler"
 
 [touch]
 package = "paket"
+"needed-package" = "paket, geri alınınca kalır"
 service = "servis"
+unit = "servis, gerektiği anda çalışır"
 command = "komut"
 
 [hints]
@@ -120,16 +137,40 @@ toggle = "işaretle"
 apply = "uygula"
 change = "değiştir"
 
+# Komut paleti: ekranın bulunduğu yerden bir tuşun ya da bir tıklamanın yaptığı her şey bir satır.
+# {tweak}, seçili maddenin adıdır.
+[palette]
+apply = "Uygula: {tweak}"
+mark = "İşaretle: {tweak}"
+unmark = "İşareti kaldır: {tweak}"
+undo = "Geri al: {tweak}"
+options = "Seçenekler: {tweak}"
+"show-detail" = "Ayrıntı panelini göster"
+"hide-detail" = "Ayrıntı panelini gizle"
+quit = "Çık"
+
 [confirm]
 "apply.title" = "Uygulansın mı?"
 apply = "Uygula"
 "revert.title" = "Geri alınsın mı?"
 revert = "Geri al"
 cancel = "Vazgeç"
+backups = "Listedeki dosyalardan var olanlar önce {folder} klasörüne kopyalanır, böylece geri alınabilir."
 "password-steps" = { one = "{n} adım parolanı isteyecek.", other = "{n} adım parolanı isteyecek." }
 
 [revert]
 button = "Geri al"
+
+# Maddenin ayar formu. {min} ve {max} sayının alabileceği aralık.
+[form]
+title = "Seçenekler"
+button = "Seçenekler"
+save = "Kaydet"
+cancel = "Vazgeç"
+"country-bad" = "2 ile 60 harf yaz; boşluk, virgül ve tire de olabilir."
+"count-bad" = "{min} ile {max} arasında bir sayı yaz."
+"helper-bad" = "paru ya da yay seç."
+"not-saved" = "Değerler kaydedilemedi, bu yüzden kullanılmadı"
 
 [run]
 applying = "Uygulanıyor: {tweak}"
@@ -143,13 +184,16 @@ failed = "Başarısız oldu"
 [settings]
 title = "Ayarlar"
 "not-saved" = "Ayar kaydedilemedi, eski değerine döndü"
+"password-once" = "Parolayı qtools açıkken bir kez sor"
+"password-once-text" = "Parola hiçbir dosyaya yazılmaz, yetki qtools kapandığında biter."
 
 [keys]
 revert = "geri al"
+options = "seçenekler"
 "close-run" = "kapat"
 
 [cli]
-usage = "Kullanım: qtools, qtools --run <madde>..., qtools --revert <madde>..."
+usage = "Kullanım: qtools, qtools --run <madde>..., qtools --revert <madde>..., qtools --help, qtools --version"
 "unknown-argument" = "Bilinmeyen argüman: {argument}"
 "unknown-tweak" = "{id} adında bir madde yok."
 applying = "Uygulanıyor: {tweak}"
@@ -158,6 +202,40 @@ done = "tamam"
 failed = "başarısız: {reason}"
 "step-failed" = "{step}. adım başarısız: {reason}"
 stopped = "Kalan maddeler çalıştırılmadı."
+
+# Bir adımı ya da geri almayı durduran şey. {file}, {backup} ve {folder} yol; {found} ve {said}
+# makinenin kendi metni, olduğu gibi gösterilir.
+[problem]
+"file-missing" = "{file} yok."
+"section-missing" = "{file} içinde [{section}] bölümü yok."
+"option-differs" = "{file} içinde {key} zaten {found} olarak ayarlı."
+"file-differs" = "{file} başka bir şey içeriyor; {line}. satırı: {found}"
+"file-ends" = "{file} başka bir şey içeriyor; {line}. satırdan önce bitiyor."
+"list-not-set" = "{key} ne {file} içinde ne de {folder} içinde ayarlı."
+"list-unreadable" = "{key} {file} içinde ayarlı ama o dosya şimdi okunamıyor."
+"list-not-understood" = "{file} listeyi qtools'un değiştirmediği bir biçimde yazıyor: {found}"
+"list-not-in-file" = "{file} artık listeyi ayarlamıyor."
+"changed-after-write" = "{file}, qtools yazdıktan sonra değişmiş; olduğu gibi bırakıldı ve hiçbir şey geri alınmadı."
+"backup-missing" = "{file} dosyasının yedeği yok ({backup}); dosya olduğu gibi bırakıldı ve hiçbir şey geri alınmadı."
+"nothing-recorded" = "Bunu qtools yapmadı, geri alacağı bir şey yok."
+"record-does-not-match" = "qtools'un {step}. adım kaydı artık bu maddeyle uyuşmuyor; hiçbir şey geri alınmadı."
+"not-recorded" = "Değişiklik kaydedilemedi, bu yüzden geri kondu: {why}"
+"not-recorded-left" = "Değişiklik kaydedilemedi ve geri de konamadı; makinede duruyor: {why}"
+"write-refused" = "{file} yazılamadı."
+"write-refused-said" = "{file} yazılamadı: {said}"
+"root-to-read" = "Bunun yapılıp yapılmadığını yalnızca root okuyabiliyor. Uyguladığında qtools parolandan sonra önce bakar, zaten olanı olduğu gibi bırakır."
+"unreadable" = "qtools bu maddenin durumunu okuyamadı: {why}"
+
+# Bütün qtools oturumu boyunca tek bir terminali tutan oturum: çalıştırmaları götüren süreç ve
+# ekranın kendi ucu. {channel} denetim kanalının olacağı yer, {reason} makinenin bu konuda
+# söylediği.
+[session]
+"no-folder" = "Bu makinede oturumun denetim kanalının duracağı bir yer yok, bu yüzden parola her çalıştırmada sorulacak."
+"unknown-request" = "Oturuma başka bir şey soruldu, hiçbir şey yapılmadı."
+"channel-failed" = "Oturum denetim kanalını açamadı ({channel}): {reason}"
+"channel-not-made" = "Denetim kanalı yapılamadı, bu çalıştırmanın kendi terminali oldu: {reason}"
+"not-asked" = "Bütün qtools boyunca tek terminali tutan oturum sona erdi, bu çalıştırmanın kendi terminali oldu: {reason}"
+"gone" = "Bütün qtools boyunca tek terminali tutan oturum sona erdi, bu çalıştırma yapılmadı."
 
 [unsupported]
 title = "Şimdilik yalnızca Arch Linux"
@@ -170,3 +248,4 @@ intro = "qtools sisteminin ayarlarını değiştirir; bu yüzden her seferinde �
 touches = "Her madde, bir şey çalışmadan önce neye dokunacağını gösterir."
 confirm = "Sen onaylamadan hiçbir şey çalışmaz. İş ekrandaki bir terminalde yürür ve parolanı orada kendin yazarsın."
 undo = "Uygulanan bir madde {key} ile geri alınır; qtools yedeğini {folder} altında tutar."
+"undo-unbound" = "Uygulanan bir madde ayrıntısından geri alınır; qtools yedeğini {folder} altında tutar."

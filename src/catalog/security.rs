@@ -42,6 +42,50 @@ pub fn firewall() -> Tweak {
     }
 }
 
+/// Lets SSH in through the firewall: one ufw rule, for port 22 over TCP.
+///
+/// ufw writes each rule it was given into `/etc/ufw/user.rules` as a `### tuple ###` line, and
+/// Arch ships that file readable by everyone, so the check needs no root: the screen sees whether
+/// the rule is there, whether the firewall is on or not. A rule already there is left alone and
+/// not recorded, so the undo never takes away a rule the person made; the undo deletes only the
+/// rule qtools added. The rule can come before the firewall is turned on.
+pub fn firewall_ssh() -> Tweak {
+    Tweak {
+        id: "firewall-ssh",
+        group: Group::Security,
+        options: Vec::new(),
+        steps: vec![Step::CommandRun {
+            run: Cmd::new("ufw", ["allow", SSH_RULE]).root(),
+            check: Cmd::new("grep", ["-qx", SSH_TUPLE, UFW_USER_RULES]),
+            undo: Cmd::new("ufw", ["delete", "allow", SSH_RULE]).root(),
+            label: "ufw",
+        }],
+        applies_to: fits_firewall_ssh,
+    }
+}
+
+/// The port SSH listens on by default, in ufw's own spelling.
+const SSH_RULE: &str = "22/tcp";
+/// How ufw records `ufw allow 22/tcp` among the IPv4 rules.
+const SSH_TUPLE: &str = "### tuple ### allow tcp 22 0.0.0.0/0 any 0.0.0.0/0 in";
+/// The rules a person or qtools gave ufw.
+const UFW_USER_RULES: &str = "/etc/ufw/user.rules";
+
+/// Whether a rule for SSH means anything here, and can be checked: the SSH server and the
+/// firewall are installed, and ufw's rules can be read. A machine where they cannot would look as
+/// though the rule were missing, and the undo would then take away a rule the person made.
+fn fits_firewall_ssh(system: &mut dyn System) -> Availability {
+    if let Availability::No(reason) = has_openssh(system) {
+        return Availability::No(reason);
+    }
+    let ufw = system.run(&Cmd::new("pacman", ["-Q", "ufw"])).is_ok_and(|output| output.ok());
+    if !ufw {
+        return Availability::No("unavailable.no-ufw");
+    }
+    let readable = system.run(&Cmd::new("test", ["-r", UFW_USER_RULES])).is_ok_and(|output| output.ok());
+    if readable { Availability::Yes } else { Availability::No("unavailable.ufw-rules-unreadable") }
+}
+
 /// Turns off password and root logins over SSH, in a drop-in of qtools' own.
 ///
 /// Arch's stock `/etc/ssh/sshd_config` starts with `Include /etc/ssh/sshd_config.d/*.conf`

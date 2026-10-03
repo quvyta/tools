@@ -8,11 +8,12 @@
 [![Arch Linux](https://img.shields.io/badge/Arch_Linux-and_derivatives-1793d1?logo=archlinux&logoColor=white)](#requirements)
 [![Status: beta](https://img.shields.io/badge/status-beta-orange.svg)](CHANGELOG.md)
 
-![qtools: two items checked in the Packages group, the confirmation listing what they touch, the run asking for the password in its own terminal, both items applied, and a firewall in the Security group that someone turned off since](https://raw.githubusercontent.com/quvyta/tools/main/docs/screenshots/qtools.gif)
+![qtools: the list with what the chosen item touches, the Settings page shared across Quvyta applications, two items checked in the Packages group, the confirmation listing what they touch, the run asking for the password in its own terminal, both items applied, and a firewall in the Security group that someone turned off since, undone at the end](https://raw.githubusercontent.com/quvyta/tools/main/docs/screenshots/qtools.gif)
 
 **quvyta-tools** applies the settings Arch Linux users usually set up by hand, from one list: a
 fast mirror list, parallel downloads in pacman, the multilib repository, an AUR helper, a package
-cache that cleans itself, a firewall, SSH hardening, SSD trim, a journal size limit and time sync.
+cache that cleans itself, a firewall with a rule for SSH, SSH hardening, SSD trim, a journal size
+limit and time sync.
 It is part of the Quvyta ecosystem of terminal applications, is built on
 [quvyta-framework](https://github.com/quvyta/framework) and is open source under the MIT licence.
 
@@ -59,14 +60,18 @@ The package installs two commands that do the same thing: `qtools` and `quvyta-t
 ## The screen
 
 ```
-  qtools  Recommended Arch Linux settings
+  qtools  Recommended Arch Linux settings                                       ctrl k  commands
 ▌  Packages     ▌ ☐  ● Mirror list                                Off  Mirror list   ● Off
   Security        ☐ ● Pacman options                              Off  Picks the fastest mirrors in
   Hardware        ☐ ● Multilib repository                         Off  your country and refreshes
   Appearance      ☐ ● AUR helper                                  Off  them every week.
-  Maintenance     ☐ ● Cache cleanup                               Off  Touches
+  Maintenance     ☐ ● Cache cleanup                               Off  Country     TR
+                                                                       Mirrors     10
+                                                                       Options
+                                                                       Touches
                                                                        reflector  package
-  Settings                                                             /etc/pacman.d/mirrorlist
+  Settings                                                             /etc/xdg/reflector/reflector.conf
+                                                                       /etc/pacman.d/mirrorlist
                                                                        reflector  command
                                                                        reflector.timer  service
 
@@ -83,19 +88,29 @@ The package installs two commands that do the same thing: `qtools` and `quvyta-t
 
 
 
-   alt b  panel    ↑↓  move    space  check    enter  apply    z  undo                ctrl q  quit
+   alt b  panel    ↑↓  move    space  check    enter  apply    a  options    z  undo   ctrl q  quit
 ```
 
 Groups on the left, the group's items in the middle, and on the right everything the chosen item
 will touch: the packages it installs, the files it writes, the services it enables. Each item
 carries its state as a mark and a word: `● Applied`, `○ Off`, `◐ Half`, and `▲ Changed` when
-something outside qtools edited the same file. An item that makes no sense on this machine is
-shown faint, with the reason, and cannot be applied.
+something outside qtools edited the same file; the detail panel says what it found there. An item
+whose state could not be read says `Unknown` rather than `Off`, and the panel says what stopped
+the reading; it can still be applied, since a run reads every step again and leaves alone what is
+already done. An item that makes no sense on this machine is shown faint, with the reason, and
+cannot be applied, from the screen or from `qtools --run`.
 
 - `↑` `↓` move, `enter` applies the chosen item.
 - `space` checks several items; `enter` then applies them one after the other.
-- `z` undoes an applied item.
+- `z` undoes an item qtools applied. An item that shows as applied because you set it up yourself is not offered an undo: qtools has nothing of its own there to take back.
+- `a` opens the chosen item's options form, and the **Options** button under the values in the detail panel opens it for the mouse; see [below](#options).
 - `alt b` closes or reopens the detail panel.
+- `ctrl k` opens the command palette over the screen: everything the keys and the sidebar do from
+  where the screen stands, each with its key beside it, found by typing a few letters of its name.
+  What cannot be done right now is not in it: undo on an item qtools has not applied itself, apply
+  on an item this machine cannot use, and the items' own commands while the Settings page is
+  showing. A run's terminal and the first-start wizard have the screen, so `ctrl k` does nothing
+  while either is up.
 - Below 72 columns the screen folds on its own: the groups become a strip above the list, the
   list takes the full width, and `alt b` opens the detail below the list; `esc` closes it.
 - **Settings**, the last entry of the sidebar, changes the language, the theme and the icons; see [below](#settings).
@@ -104,6 +119,23 @@ shown faint, with the reason, and cannot be applied.
 
 Before anything runs, one confirmation lists the commands, the files, where the backup goes and
 how many steps will ask for your password.
+
+## Options
+
+Some items take values of your own, and the detail panel lists them under the summary: the mirror
+list's country and how many mirrors it keeps, how many packages pacman downloads at once, which
+AUR helper is built, how large the system journal may grow. `a`, or the **Options** button under
+them, opens a form with one field for each; **Save** writes them to `~/.config/quvyta/tools.conf`
+and the list, the detail and the run that follows show the new values at once, while **Cancel** or
+`esc` writes nothing. A field that fails says what it allows under itself, and then nothing is
+written.
+
+qtools' own limits are: a country of 2 to 60 ASCII letters, with spaces, commas or hyphens so that
+a code, a name or a list of them is one value; 1 to 50 mirrors; 1 to 20 parallel downloads; 50 to
+4096 MB of journal; and `paru` or `yay` for the helper. Nothing in the file is rewritten behind
+your back: a key that is not there, or that holds a value its item cannot use, leaves qtools on
+the value it recommends and the file as you wrote it. `qtools --run` reads the same file, so a run
+carries out exactly what the screen showed.
 
 ## Languages
 
@@ -121,27 +153,29 @@ The first time qtools opens, a short wizard asks for the language, the colour th
 
 | Item | Id | What it does |
 |---|---|---|
-| Mirror list | `mirrors` | Installs `reflector`, writes the fastest mirrors of your country to `/etc/pacman.d/mirrorlist` and refreshes them weekly with `reflector.timer`. |
+| Mirror list | `mirrors` | Installs `reflector`, writes your country and the number of mirrors to `/etc/xdg/reflector/reflector.conf`, writes the fastest of those mirrors to `/etc/pacman.d/mirrorlist` and refreshes them weekly with `reflector.timer`, which reads the same file. Undoing puts back the mirror list you had before, whatever the timer wrote since. |
 | Pacman options | `pacman-options` | Turns on `ParallelDownloads`, `Color` and `VerbosePkgLists` in `/etc/pacman.conf`. |
-| Multilib repository | `multilib` | Enables the `[multilib]` section of `/etc/pacman.conf`, needed by Steam and some drivers. |
-| AUR helper | `aur-helper` | Builds `paru` from the AUR so packages outside the official repositories install with one command. |
+| Multilib repository | `multilib` | Enables the `[multilib]` section of `/etc/pacman.conf`, needed by Steam and some drivers. Its packages can be installed after your next full system upgrade. |
+| AUR helper | `aur-helper` | Installs `base-devel` and `git` if they are missing, then builds `paru` from the AUR so packages outside the official repositories install with one command. Undoing removes `paru` and leaves the build tools. |
 | Cache cleanup | `cache-cleanup` | Installs `pacman-contrib` and enables `paccache.timer`, keeping only the last few versions of each downloaded package. |
 
 ## The Security group
 
 | Item | Id | What it does |
 |---|---|---|
-| Firewall | `firewall` | Installs `ufw`, turns it on and enables `ufw.service`: incoming connections are blocked, outgoing ones allowed. qtools opens nothing, so SSH and any other service that must stay reachable needs its own `ufw allow` rule. |
-| SSH hardening | `ssh-hardening` | Only when `openssh` is installed: a drop-in under `/etc/ssh/sshd_config.d/` turns off password logins and root logins. It takes effect at the next sshd restart; make sure your key is already in place on a machine you reach remotely. |
+| Firewall | `firewall` | Installs `ufw`, turns it on and enables `ufw.service`: incoming connections are blocked, outgoing ones allowed. qtools opens nothing, SSH included: on a machine you reach over SSH, apply it from the machine itself. |
+| SSH through the firewall | `firewall-ssh` | Only when `openssh` and `ufw` are installed: one rule, `ufw allow 22/tcp`, so the firewall can be on while you reach the machine over SSH. The list reads the rule from `/etc/ufw/user.rules`, which needs no password; a rule you made yourself is left alone and not recorded, and undoing deletes only the rule qtools added. |
+| SSH hardening | `ssh-hardening` | Only when `openssh` is installed: a drop-in under `/etc/ssh/sshd_config.d/` turns off password logins and root logins. sshd reads it when it next starts, at the next boot for instance; make sure your key is already in place on a machine you reach remotely. |
 
 ## The Hardware group
 
 | Item | Id | What it does |
 |---|---|---|
-| Compressed swap in RAM | `zram-swap` | Installs `zram-generator` and writes `/etc/systemd/zram-generator.conf`: a compressed swap device half the size of your memory, on top of any swap you already have. It becomes active at the next boot or the next start of the zram service. |
+| Processor microcode | `microcode` | Installs `intel-ucode` or `amd-ucode`, whichever your processor needs, and adds the `microcode` hook to `/etc/mkinitcpio.conf` (or to the drop-in that holds `HOOKS`, if there is one) so the microcode is in the initramfs; `mkinitcpio -P` then rebuilds it, which takes about a minute. Your bootloader is never touched. The new microcode is loaded at the next boot. On a machine with no `/etc/mkinitcpio.conf` (dracut, booster) or an mkinitcpio older than 36 the item steps aside: by hand the old way means an `initrd` line in the bootloader itself, which the Arch wiki page "Microcode" describes. |
+| Compressed swap in RAM | `zram-swap` | Installs `zram-generator` and writes `/etc/systemd/zram-generator.conf`: a compressed swap device half the size of your memory and at most 8 GB, on top of any swap you already have. It becomes active at the next boot or the next start of the zram service. |
 | Bluetooth | `bluetooth` | Only on a machine with a Bluetooth controller: installs `bluez` and `bluez-utils` and enables `bluetooth.service`. |
 | Laptop power management | `laptop-power` | Only on a machine with a battery, and only when `power-profiles-daemon` is not already managing power: installs `tlp` and enables `tlp.service`, at tlp's own defaults. |
-| NVIDIA and Wayland | `nvidia-wayland` | Only with an NVIDIA card whose driver is already installed: writes `options nvidia_drm modeset=1` to `/etc/modprobe.d/50-quvyta-nvidia.conf` and enables the suspend, resume and hibernate services. It takes effect at the next boot; if the nvidia module is built into your initramfs, run `mkinitcpio -P` as well. qtools does not install the driver: which one is right depends on the card and the kernel, and a wrong one can leave the machine without a display. |
+| NVIDIA and Wayland | `nvidia-wayland` | Only with an NVIDIA card whose driver is already installed, in any of its builds (`nvidia-open`, the LTS or DKMS builds, or an older card's series from the AUR): writes `options nvidia_drm modeset=1` to `/etc/modprobe.d/50-quvyta-nvidia.conf`, enables (without starting) the suspend, resume and hibernate services, and rebuilds the initramfs with `mkinitcpio -P` so the setting is in it too. It takes effect at the next boot. qtools does not install the driver: which one is right depends on the card and the kernel, and a wrong one can leave the machine without a display. |
 
 ## The Appearance group
 
@@ -165,10 +199,13 @@ The same items can be applied or undone without the screen, in the order given:
 ```
 qtools --run mirrors pacman-options
 qtools --revert multilib
+qtools --help
+qtools --version
 ```
 
 The exit code is 0 when every item went through, 1 when one failed (the rest are not run),
 2 when an argument made no sense and 3 when the distribution is not supported (nothing is run).
+Messages come in the language of your terminal.
 
 ## Backups and undo
 
@@ -181,7 +218,14 @@ when that variable is set):
 
 The digest is how qtools notices that a file changed behind its back. Such a file is shown as
 `▲ Changed` and is never silently overwritten. Undoing removes only the packages qtools itself
-installed; a package you already had stays.
+installed; a package you already had stays, and so do the build tools (`base-devel`, `git`) the
+AUR helper needed, since you may build other things with them by then.
+
+A backup is on disk before a step changes anything, and the journal is written after every
+step, so a run that is cut short can still be undone step by step. An undo checks everything
+first: if a file changed since qtools wrote it, or its backup is gone, nothing is undone and
+qtools says why. An undo that stops halfway, because a package cannot be removed for instance,
+keeps on record only what is still to be undone; asking again does the rest.
 
 ## Passwords
 
@@ -194,9 +238,10 @@ you type into it directly. The confirmation says beforehand how many steps will 
 - qtools changes system files and services. Each change is recorded and can be undone: an undo
   puts back the file qtools saved, and leaves a file alone when something else has changed it
   since.
-- The firewall blocks every incoming connection. On a machine you reach over the network, add a
-  `ufw allow` rule for SSH first, or apply the firewall from the machine itself.
-- SSH hardening turns off password logins. Make sure your key works before you restart `sshd`.
+- The firewall blocks every incoming connection, SSH included. On a machine you reach over the
+  network, apply "SSH through the firewall" first, or apply the firewall from the machine itself.
+- SSH hardening turns off password logins from the next start of `sshd`. Make sure your key works
+  before then.
 - A file that shows `▲ Changed` was edited by something other than qtools. qtools will not write
   over it; look at the file and decide yourself.
 

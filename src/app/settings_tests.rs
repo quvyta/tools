@@ -19,6 +19,7 @@ use super::tests::focus_tweaks;
 use super::wizard::tests::Root;
 use super::{Opening, Tools, UpdateFolders};
 use crate::catalog;
+use crate::catalog::hardware::Cpu;
 use crate::tweak::{Group, TweakState};
 
 /// Long enough for a write in the background to come back and a notice to settle in.
@@ -45,9 +46,9 @@ fn set_up_in(root: &Path, language: &str) {
 /// runtime starts it: the language and theme [`Opening::new`] resolved are those of the first
 /// frame.
 fn start(root: &Path, width: u16, height: u16) -> Harness<Tools> {
-    let states = vec![TweakState::Off; catalog::all().len()];
-    let opening =
-        Opening::new(Some(&root.join("config")), Some(&root.join("fonts")), states).with_updates(Some(folders(root)));
+    let states = vec![TweakState::Off; catalog::all(Cpu::Intel).len()];
+    let opening = Opening::new(Some(&root.join("config")), Some(&root.join("fonts")), states, Cpu::Intel)
+        .with_updates(Some(folders(root)));
     let language = opening.preferences.language().value.clone();
     let theme = opening.preferences.theme().value.clone();
     let mut h = Harness::with_env(opening.tools, crate::locales::env(), width, height);
@@ -292,6 +293,38 @@ fn the_tweak_keys_do_nothing_on_the_settings_page() {
 }
 
 #[test]
+fn the_option_values_survive_a_language_change_on_the_settings_page() {
+    // The keys qtools keeps for itself live in the same file as the shared Quvyta keys, and the
+    // framework's appearance rows rewrite that file; what they write must not take the option
+    // values with it.
+    let root = Root::new();
+    set_up_in(root.path(), "en");
+    let config = root.path().join("config");
+    fs::write(config.join("tools.conf"), "language = \"en\"\n\n[option.mirrors]\ncountry = \"Germany\"\ncount = 25\n")
+        .expect("own file with chosen values");
+
+    let mut h = start(root.path(), 100, 40);
+    h.click_text("Settings");
+    // qtools keeps its own language in `tools.conf`, so its box is already unchecked and the
+    // pick is written to that file and not to the shared one.
+    h.click_text("Language");
+    let code = not_detected();
+    h.click_text("English");
+    h.click_text(&language_name(&code));
+    h.advance(MOMENT);
+
+    let own = read(root.path(), "tools.conf");
+    assert!(own.contains(&format!("language = \"{code}\"")), "the language is written:\n{own}");
+    assert!(own.contains("country = \"Germany\""), "the chosen country is still there:\n{own}");
+    assert!(own.contains("count = 25"), "and the chosen count:\n{own}");
+
+    // The list carries on with the value in force, too, in the language it now speaks.
+    h.click_text(&said_in(&code, "group.packages"));
+    let screen = h.screen();
+    assert!(screen.contains("Germany") && screen.contains("25"), "the detail shows them:\n{screen}");
+}
+
+#[test]
 fn after_the_wizard_the_page_carries_on_from_what_it_chose() {
     let root = Root::new();
     fs::create_dir_all(root.path().join("config")).expect("folder");
@@ -315,22 +348,25 @@ fn after_the_wizard_the_page_carries_on_from_what_it_chose() {
     assert!(Ecosystem::QUVYTA.update_notice_in(&config), "the page knew it was off, so space turned it on");
 }
 
-/// The Settings entry of the sidebar in a member harness. `Harness::member_in` starts from the
-/// framework's own language files, so qtools' strings show as their keys; the click still lands
-/// where a person's would.
-const SETTINGS_ENTRY: &str = "⟦settings.title⟧";
-
 #[test]
 fn a_theme_another_quvyta_application_gives_qtools_while_it_is_open_is_where_the_next_pick_goes() {
     use qframe::storage::{Scope, Shared};
     let root = Root::new();
     set_up_in(root.path(), "en");
     let folder = root.path().join("config");
-    let states = vec![TweakState::Off; catalog::all().len()];
-    let opening = Opening::new(Some(&folder), Some(&root.path().join("fonts")), states);
-    let mut h = Harness::member_in(opening.tools, Ecosystem::QUVYTA, &folder, super::APP, 100, 40);
+    let states = vec![TweakState::Off; catalog::all(Cpu::Intel).len()];
+    let opening = Opening::new(Some(&folder), Some(&root.path().join("fonts")), states, Cpu::Intel);
+    let mut h = Harness::member_in_with_env(
+        opening.tools,
+        crate::locales::env(),
+        Ecosystem::QUVYTA,
+        &folder,
+        super::APP,
+        100,
+        40,
+    );
     h.set_glyph_mode(GlyphMode::Unicode).set_reduced_motion(true);
-    h.click_text(SETTINGS_ENTRY);
+    h.click_text("Settings");
     assert!(h.screen().contains("Monochrome"), "{}", h.screen());
     // Another member, the launcher say, gives qtools a theme of its own in qtools' file.
     Ecosystem::QUVYTA.set_in(&folder, super::APP, Shared::Theme, "iris", Scope::App).expect("saved");

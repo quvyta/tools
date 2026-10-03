@@ -26,9 +26,6 @@ const LEAST_PAGE_ROWS: u16 = 8;
 /// between them, and still a few rows for the promises.
 const DESCRIPTION_UNDER_BOX: u16 = 14;
 
-/// The cells a checkbox's label starts after: its two-cell box and the gap beside it.
-const BOX_AND_GAP: u16 = 4;
-
 /// The widget id the keyboard starts on: the appearance rows of the framework's step.
 pub(super) const FIRST: &str = "setup-appearance";
 
@@ -82,14 +79,13 @@ impl Tools {
     fn before_step(&self, rows: u16, ui: &mut View<'_, Msg>) {
         let beside_box = rows >= DESCRIPTION_UNDER_BOX;
         // The key is read from the keymap, so the line stays true if the person rebinds it.
-        let key = ui
-            .env()
-            .keymap()
-            .chords_for(Scope::App, "revert")
-            .first()
-            .map_or_else(|| "z".to_owned(), qframe::keymap::KeyChord::label);
-        let promises =
-            [t!("wizard.touches"), t!("wizard.confirm"), t!("wizard.undo", key = key, folder = self.backups.as_str())];
+        // An undo key the person unbound leaves nothing to name, so the promise says the undo
+        // without a key rather than a key that does nothing.
+        let undo = match ui.env().keymap().label_for(Scope::App, "revert") {
+            Some(key) => t!("wizard.undo", key = key, folder = self.backups.as_str()),
+            None => t!("wizard.undo-unbound", folder = self.backups.as_str()),
+        };
+        let promises = [t!("wizard.touches"), t!("wizard.confirm"), undo];
         ui.add(Text::new(t!("wizard.intro")).role("secondary")).fill_width();
         ui.spacer().height(Length::Cells(1));
         // On a narrow, short screen the lines outgrow the page; it scrolls rather than cutting
@@ -115,18 +111,12 @@ impl Tools {
         // scrolls the promises never hides the one choice this step offers.
         if self.updates.is_some() {
             ui.spacer().height(Length::Cells(1));
-            ui.add(
-                Checkbox::new(self.update_notice)
-                    .label(t!("quvyta.appearance.updates"))
-                    .on_toggle(Msg::ToggleUpdateNotice),
-            )
-            .fill_width()
-            .id("wizard-updates");
-            if beside_box {
-                // Under the label, where a setting's description stands.
-                let under_label = Padding { top: 0, right: 0, bottom: 0, left: BOX_AND_GAP };
-                ui.add(Text::new(update_text()).role("faint")).fill_width().padding(under_label);
-            }
+            let checkbox = Checkbox::new(self.update_notice)
+                .label(t!("quvyta.appearance.updates"))
+                .on_toggle(Msg::ToggleUpdateNotice);
+            // Under the label, where a setting's description stands.
+            let checkbox = if beside_box { checkbox.description(update_text()) } else { checkbox };
+            ui.add(checkbox).fill_width().id("wizard-updates");
         }
     }
 }
