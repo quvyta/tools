@@ -11,7 +11,7 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::time::Duration;
 
-use qframe::icons::GlyphMode;
+use qframe::icons::{GlyphMode, IconMode};
 use qframe::prelude::*;
 use qframe::storage::Ecosystem;
 
@@ -202,6 +202,54 @@ fn a_language_kept_to_qtools_is_in_force_at_once_and_written_to_its_own_file() {
     // The next start speaks it too.
     let again = start(root.path(), 100, 40);
     assert!(again.screen().contains(&group), "{}", again.screen());
+}
+
+#[test]
+fn an_icon_set_kept_to_qtools_is_in_force_at_once_and_written_to_its_own_file() {
+    let root = Root::new();
+    let mut h = english(root.path());
+    h.click_text("Settings");
+    // The box under the icons row, reached the way a person reaches it: the row, then down.
+    h.click_text("Icons");
+    h.press("down").press("space");
+    h.advance(MOMENT);
+    h.click_text("Detect");
+    h.click_text("ASCII");
+    h.advance(MOMENT);
+    assert_eq!(h.env().icon_mode(), IconMode::Ascii, "qtools draws with it at once");
+    let own = read(root.path(), "tools.conf");
+    assert!(own.contains("icons = \"ascii\""), "the box is cleared, so only qtools takes it:\n{own}");
+    let shared = read(root.path(), "quvyta.conf");
+    assert!(shared.contains("icons = \"unicode\""), "the other applications keep theirs:\n{shared}");
+}
+
+#[test]
+fn the_reduce_motion_row_is_in_force_at_once_and_the_shared_file_is_what_the_next_start_reads() {
+    let root = Root::new();
+    let mut h = english(root.path());
+    // The harness opens the screen with motion already reduced, so the switch is on and the first
+    // press is the one a person would make to let the screen move again.
+    assert!(h.env().reduced_motion(), "motion starts out reduced");
+    h.click_text("Settings");
+    h.click_text("Reduce motion");
+    h.press("space");
+    h.advance(MOMENT);
+    assert!(!h.env().reduced_motion(), "the screen moves again at once");
+    let shared = read(root.path(), "quvyta.conf");
+    assert!(shared.contains("reduced-motion = false"), "{shared}");
+    let own = read(root.path(), "tools.conf");
+    assert!(own.contains("reduced-motion = \"quvyta\""), "qtools goes on following the shared file:\n{own}");
+
+    h.press("space");
+    h.advance(MOMENT);
+    assert!(h.env().reduced_motion(), "and back on");
+    let config = root.path().join("config");
+    let resolved = Ecosystem::QUVYTA.preferences_in(&config, super::APP, &crate::locales::i18n());
+    assert!(
+        resolved.reduced_motion().value,
+        "the next start reads it from the shared file:\n{}",
+        read(root.path(), "quvyta.conf")
+    );
 }
 
 #[test]

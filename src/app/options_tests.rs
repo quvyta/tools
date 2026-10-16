@@ -428,7 +428,7 @@ fn a_value_changed_on_an_applied_tweak_reads_as_changed_until_it_is_applied_agai
         TweakState::Applied,
         "the machine has five parallel downloads, which is what the file says"
     );
-    assert!(!reading.recorded[1], "and qtools has not done it, so there is nothing to undo");
+    assert!(reading.recorded[1].is_empty(), "and qtools has not done it, so there is nothing to undo");
 
     // A run starts a stand-in that prints what `qtools --run` prints; the machine behind the
     // states is the fake one above, so nothing here can reach this computer.

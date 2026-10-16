@@ -2,6 +2,16 @@
 
 Every release of quvyta-tools, newest first. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/); while the version starts with 0, a minor release may change the command line or the files qtools keeps under `~/.local/state/quvyta-tools/`, and the notes say so when it does.
 
+## 0.1.13 - 2026-10-16
+
+### Changed
+
+- Built on quvyta-framework 0.1.33.
+
+### Fixed
+
+- An undo's confirmation counted every step of an item among those that ask for your password; it now counts only the steps qtools has on record, the ones an undo puts back, and leaves out a package the item only needed, which an undo keeps.
+
 ## 0.1.12 - 2026-10-03
 
 ### Added

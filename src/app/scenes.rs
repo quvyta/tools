@@ -27,7 +27,15 @@ fn scene(states: Vec<TweakState>, theme: Option<&str>, width: u16, height: u16) 
 /// recommended ones whoever asks, so a scene is the same machine after a run as before one.
 fn invented_reading(_: &Choices) -> Reading {
     let states = invented_states();
-    let recorded = states.iter().map(|state| !matches!(state, TweakState::Off)).collect();
+    let catalog = catalog::all(Cpu::default());
+    let recorded = states
+        .iter()
+        .zip(&catalog)
+        .map(|(state, tweak)| match state {
+            TweakState::Off => Vec::new(),
+            _ => (0..tweak.steps.len()).collect(),
+        })
+        .collect();
     Reading { states, recorded }
 }
 

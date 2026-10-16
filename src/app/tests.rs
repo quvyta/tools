@@ -216,6 +216,54 @@ fn folding_and_unfolding_keeps_the_selection() {
     assert!(wide.contains("pacman.conf"), "the detail is beside the list again:\n{wide}");
 }
 
+// The other half of that promise: the row a person chose belongs to the group they chose it in.
+// The groups do not even have the same number of rows, so a row number carried into another one
+// points past its end, where the detail has no item to speak of and no row is marked at all.
+#[test]
+fn another_group_starts_at_its_own_first_row() {
+    let mut h = harness(100, 24);
+    focus_tweaks(&mut h);
+    h.press("down").press("down");
+    assert_eq!(h.app().selected, 2, "the third of the five in Packages");
+
+    h.click_text("Security");
+    assert_eq!(h.app().group, Group::Security);
+    assert_eq!(h.app().selected, 0, "a group other than the one open starts at its first row");
+    let screen = h.screen();
+    assert!(screen.contains("ufw.service"), "the detail is that first item's own:\n{screen}");
+    assert!(!screen.contains("Multilib repository"), "nothing of the group left behind is on screen:\n{screen}");
+}
+
+// The wide screen's own panel: `alt+b` is the one key that closes it and opens it again, and
+// the list takes the whole width while it is shut. The narrow screen has its own key, in
+// `on_a_narrow_screen_the_detail_opens_below_the_list_and_esc_closes_it`; this is the wide half
+// of the promise, which nothing else reaches.
+#[test]
+fn alt_b_closes_the_detail_beside_the_list_and_opens_it_again() {
+    let mut h = harness(100, 24);
+    assert!(h.app().panel_open, "the detail is open beside the list to begin with");
+    let open = h.screen();
+    assert!(open.contains("reflector") && open.contains("/etc/pacman.d/mirrorlist"), "{open}");
+    focus_tweaks(&mut h);
+
+    h.press("alt+b");
+    assert!(!h.app().panel_open, "alt+b shut it");
+    // The panel slides shut, as a person watches it do.
+    h.advance(std::time::Duration::from_millis(800));
+    let closed = h.screen();
+    for text in PACKAGE_TITLES {
+        assert!(closed.contains(text), "`{text}` has the whole width while the panel is shut:\n{closed}");
+    }
+    assert!(!closed.contains("reflector"), "nothing of the detail is left on screen:\n{closed}");
+    assert!(!closed.contains("Touches"), "{closed}");
+
+    h.press("alt+b");
+    assert!(h.app().panel_open, "alt+b opened it again");
+    h.advance(std::time::Duration::from_millis(800));
+    let again = h.screen();
+    assert!(again.contains("reflector") && again.contains("/etc/pacman.d/mirrorlist"), "{again}");
+}
+
 #[test]
 fn on_a_narrow_screen_the_detail_opens_below_the_list_and_esc_closes_it() {
     let mut h = harness(48, 20);
@@ -376,31 +424,49 @@ pub(super) fn every_tweak_off() -> Vec<TweakState> {
 /// the same machine whoever asks.
 pub(super) fn reading_off(_: &Choices) -> Reading {
     let states = every_tweak_off();
-    let recorded = vec![false; states.len()];
+    let recorded = vec![Vec::new(); states.len()];
     Reading { states, recorded }
 }
 
 /// What the screen reads after a run: `states`, with nothing on record.
 fn reading(states: Vec<TweakState>) -> Reading {
-    let recorded = vec![false; states.len()];
+    let recorded = vec![Vec::new(); states.len()];
     Reading { states, recorded }
 }
 
 /// A screen whose runs start `script` instead of the real binary, and read no real machine.
 pub(super) fn harness_running(script: &Script, states: Vec<TweakState>) -> Harness<Tools> {
-    harness_recorded(script, states, Vec::new())
+    harness_recorded(script, states, &[])
 }
 
-/// The same screen, with the tweaks at these catalog places on qtools' record.
-pub(super) fn harness_recorded(script: &Script, states: Vec<TweakState>, on_record: Vec<usize>) -> Harness<Tools> {
-    let mut recorded = vec![false; states.len()];
-    for at in on_record {
-        recorded[at] = true;
-    }
+/// Every step of the tweaks at the catalog places `on_record` on qtools' record, nothing of the
+/// others, for a catalog of `count` tweaks on `cpu`.
+pub(super) fn every_step_of(on_record: &[usize], count: usize, cpu: Cpu) -> Vec<Vec<usize>> {
+    let catalog = catalog::all(cpu);
+    (0..count)
+        .map(|at| if on_record.contains(&at) { (0..catalog[at].steps.len()).collect() } else { Vec::new() })
+        .collect()
+}
+
+/// The same screen, with every step of the tweaks at these catalog places on qtools' record.
+pub(super) fn harness_recorded(script: &Script, states: Vec<TweakState>, on_record: &[usize]) -> Harness<Tools> {
+    let recorded = every_step_of(on_record, states.len(), Cpu::Intel);
     let mut tools = Tools::new(states, Cpu::Intel).machine(script.0.clone(), reading_off).recorded(recorded);
     // Every run in this file is a process of its own with a terminal of its own, which is what
     // "ask for the password once while qtools is open" turned off means. The runs that share one
     // terminal are in `session::tests`.
+    tools.password_once = false;
+    let mut h = Harness::with_env(tools, crate::locales::env(), 100, 24);
+    h.set_locale("en").set_glyph_mode(GlyphMode::Unicode);
+    h
+}
+
+/// The same screen, with `reader` as its way of asking where every tweak stands once a run has
+/// ended. A test that cares what the list says after a run gives a reader that answers
+/// differently the second time.
+fn harness_read_by(script: &Script, states: Vec<TweakState>, reader: fn(&Choices) -> Reading) -> Harness<Tools> {
+    let recorded = vec![Vec::new(); states.len()];
+    let mut tools = Tools::new(states, Cpu::Intel).machine(script.0.clone(), reader).recorded(recorded);
     tools.password_once = false;
     let mut h = Harness::with_env(tools, crate::locales::env(), 100, 24);
     h.set_locale("en").set_glyph_mode(GlyphMode::Unicode);
@@ -498,7 +564,7 @@ fn z_asks_before_undoing_an_applied_tweak_and_runs_the_revert() {
     let script = Script::new("revert", "echo \"$@\"");
     let mut states = every_tweak_off();
     states[0] = TweakState::Applied;
-    let mut h = harness_recorded(&script, states, vec![0]);
+    let mut h = harness_recorded(&script, states, &[0]);
     focus_tweaks(&mut h);
     h.press("z");
     assert!(h.screen().contains("Undo this?"), "undoing asks first:\n{}", h.screen());
@@ -507,6 +573,47 @@ fn z_asks_before_undoing_an_applied_tweak_and_runs_the_revert() {
     let screen = h.screen();
     assert!(screen.contains("--revert mirrors"), "the binary undoes the tweak:\n{screen}");
     assert!(screen.contains("Undoing Mirror list"), "{screen}");
+}
+
+// The detail's own Undo button: the mouse's way of doing what `z` does, for the tweak whose
+// detail is open. The click lands on the button, whose word the footer's hint spells in lower
+// case, so the two cannot be confused.
+#[test]
+fn the_details_undo_button_asks_before_undoing_the_way_the_z_key_does() {
+    let script = Script::new("undo-button", "echo \"$@\"");
+    let mut states = every_tweak_off();
+    states[0] = TweakState::Applied;
+    let mut h = harness_recorded(&script, states, &[0]);
+    let (x, y) = h.find("Undo").expect("an applied tweak offers an Undo button in its detail");
+    h.click(x, y);
+    assert!(h.screen().contains("Undo this?"), "it asks first, like the key:\n{}", h.screen());
+    say_yes(&mut h);
+    wait_for_exit(&mut h);
+    assert!(h.screen().contains("--revert mirrors"), "the binary undoes the tweak:\n{}", h.screen());
+}
+
+// The states a run leaves behind are read again from the machine, not remembered from before:
+// the list has to say what the machine says, or a second run starts from a lie.
+#[test]
+fn the_list_reads_the_machine_again_once_a_run_has_ended() {
+    let script = Script::new("reread", "echo \"$@\"");
+    let mut h = harness_read_by(&script, every_tweak_off(), mirrors_applied);
+    assert!(!h.screen().contains("Applied"), "nothing is applied to begin with:\n{}", h.screen());
+    focus_tweaks(&mut h);
+    h.press("enter");
+    say_yes(&mut h);
+    wait_for_exit(&mut h);
+    h.press("esc");
+    let screen = h.screen();
+    assert!(screen.contains("Applied"), "the list shows what the machine now says:\n{screen}");
+}
+
+/// Where a machine that has just had the mirror list applied says every tweak stands.
+fn mirrors_applied(_: &Choices) -> Reading {
+    let mut states = every_tweak_off();
+    states[0] = TweakState::Applied;
+    let recorded = vec![Vec::new(); states.len()];
+    Reading { states, recorded }
 }
 
 #[test]
@@ -592,7 +699,7 @@ fn the_confirmation_says_where_the_backups_go_and_an_undo_does_not() {
     let script = Script::new("revert-backups", "echo \"$@\"");
     let mut states = every_tweak_off();
     states[0] = TweakState::Applied;
-    let mut h = harness_recorded(&script, states, vec![0]);
+    let mut h = harness_recorded(&script, states, &[0]);
     h.resize(140, 40);
     focus_tweaks(&mut h);
     h.press("z");
@@ -614,6 +721,44 @@ fn the_confirmation_counts_only_the_password_steps_a_run_still_has_to_do() {
     let screen = h.screen();
     assert!(screen.contains("Apply this?"), "{screen}");
     assert!(screen.contains("2 steps will ask for your password."), "{screen}");
+}
+
+#[test]
+fn the_undo_confirmation_counts_only_the_password_steps_on_record() {
+    // qtools wrote the mirror list and turned the timer on; the package was there before it, so
+    // an undo puts back those two steps alone, each as root.
+    let mut states = every_tweak_off();
+    states[0] = TweakState::Half(vec![true, true, false, true]);
+    let mut recorded = vec![Vec::new(); states.len()];
+    recorded[0] = vec![1, 3];
+    let tools = Tools::new(states, Cpu::default()).recorded(recorded);
+    let mut h = Harness::with_env(tools, crate::locales::env(), 140, 40);
+    h.set_locale("en").set_glyph_mode(GlyphMode::Unicode);
+    focus_tweaks(&mut h);
+    h.press("z");
+    let screen = h.screen();
+    assert!(screen.contains("Undo this?"), "{screen}");
+    assert!(screen.contains("2 steps will ask for your password."), "{screen}");
+}
+
+// The undo count above is only as true as the reading behind it: the steps on record come from
+// qtools' journal, each once and in step order, however the journal lists them.
+#[test]
+fn the_reading_takes_the_steps_on_record_from_the_journal() {
+    let folder = std::path::Path::new("/state/quvyta-tools");
+    let mut system = crate::system::FakeSystem::new();
+    system.file(
+        "/state/quvyta-tools/applied.toml",
+        "[[mirrors]]\nstep = 3\n\n[[mirrors]]\nstep = 1\n\n[[mirrors]]\nstep = 3\n",
+    );
+    let reading = read(&Choices::recommended(), &mut system, Cpu::Intel, folder);
+    let mirrors = catalog::all(Cpu::Intel).iter().position(|tweak| tweak.id == "mirrors").expect("in the catalog");
+    assert_eq!(reading.recorded[mirrors], vec![1, 3]);
+    assert!(
+        reading.recorded.iter().enumerate().all(|(at, steps)| at == mirrors || steps.is_empty()),
+        "nothing else is on record: {:?}",
+        reading.recorded
+    );
 }
 
 #[test]
@@ -678,7 +823,7 @@ fn a_tweak_qtools_did_offers_an_undo_whose_button_asks_first() {
     let script = Script::new("ours", "echo \"$@\"");
     let mut states = every_tweak_off();
     states[0] = TweakState::Applied;
-    let mut h = harness_recorded(&script, states, vec![0]);
+    let mut h = harness_recorded(&script, states, &[0]);
 
     h.click_text("Undo");
 

@@ -18,7 +18,7 @@ use std::time::{Duration, Instant};
 use qframe::icons::GlyphMode;
 use qframe::prelude::*;
 
-use super::super::tests::{Script, every_tweak_off, focus_tweaks, say_yes};
+use super::super::tests::{Script, every_step_of, every_tweak_off, focus_tweaks, say_yes};
 use super::super::wizard::tests::Root;
 use super::super::{Msg, Opening, Reading, Tools};
 use crate::catalog;
@@ -124,7 +124,7 @@ impl Stands {
     fn screen_with(&self, program: PathBuf) -> Harness<Tools> {
         let tools = Tools::new(every_tweak_off(), Cpu::Intel)
             .machine(program, reading_off)
-            .recorded(vec![false; catalog::all(Cpu::Intel).len()])
+            .recorded(vec![Vec::new(); catalog::all(Cpu::Intel).len()])
             .one_terminal(Some(self.folder.clone()));
         let mut h = Harness::with_env(tools, crate::locales::env(), 100, 30);
         h.set_locale("en").set_glyph_mode(GlyphMode::Unicode);
@@ -186,7 +186,7 @@ fn script_path(name: &str) -> PathBuf {
 /// What the screen reads after a run: every tweak off, nothing on qtools' record.
 fn reading_off(_: &crate::choices::Choices) -> Reading {
     let states = every_tweak_off();
-    let recorded = vec![false; states.len()];
+    let recorded = vec![Vec::new(); states.len()];
     Reading { states, recorded }
 }
 
@@ -296,7 +296,7 @@ fn a_revert_goes_through_the_session_too() {
     let mut h = stands.harness();
     let mut states = every_tweak_off();
     states[0] = TweakState::Applied;
-    let recorded = vec![true; states.len()];
+    let recorded = every_step_of(&(0..states.len()).collect::<Vec<_>>(), states.len(), Cpu::Intel);
     h.send(Msg::StatesRead(Reading { states, recorded }));
 
     focus_tweaks(&mut h);

@@ -14,7 +14,8 @@ use qframe::keymap::{KeyChord, Scope};
 use qframe::prelude::*;
 
 use super::tests::{
-    Script, every_tweak_off, focus_tweaks, harness, harness_recorded, harness_running, say_yes, wait_for_exit,
+    Script, every_step_of, every_tweak_off, focus_tweaks, harness, harness_recorded, harness_running, say_yes,
+    wait_for_exit,
 };
 use super::wizard::tests::Root;
 use super::{Opening, Tools, UpdateFolders};
@@ -74,11 +75,8 @@ fn marked(h: &Harness<Tools>) -> bool {
 
 /// The screen on a machine where the catalog places `on_record` are on qtools' record and the
 /// tweaks stand as `states`: what the person sees, with no run behind it.
-fn recorded(states: Vec<TweakState>, on_record: Vec<usize>) -> Harness<Tools> {
-    let mut flags = vec![false; states.len()];
-    for at in on_record {
-        flags[at] = true;
-    }
+fn recorded(states: Vec<TweakState>, on_record: &[usize]) -> Harness<Tools> {
+    let flags = every_step_of(on_record, states.len(), Cpu::default());
     let mut h = Harness::with_env(Tools::new(states, Cpu::default()).recorded(flags), crate::locales::env(), 100, 24);
     h.set_locale("en").set_glyph_mode(GlyphMode::Unicode);
     h
@@ -89,7 +87,7 @@ fn ctrl_k_opens_the_palette_with_what_the_screen_allows_and_the_keys_beside_them
     let mut states = every_tweak_off();
     states[0] = TweakState::Applied;
     // The mirrors are on qtools' record, so all four of the item's own commands are there.
-    let mut h = recorded(states, vec![0]);
+    let mut h = recorded(states, &[0]);
     open(&mut h);
 
     let screen = h.screen();
@@ -125,11 +123,8 @@ fn the_key_beside_a_command_is_the_one_the_keymap_binds() {
     env.keymap_mut().bind(Scope::App, "revert", &["u".parse::<KeyChord>().expect("a key")]);
     let mut states = every_tweak_off();
     states[0] = TweakState::Applied;
-    let tools = Tools::new(states, Cpu::default()).recorded({
-        let mut flags = vec![false; every_tweak_off().len()];
-        flags[0] = true;
-        flags
-    });
+    let tools =
+        Tools::new(states, Cpu::default()).recorded(every_step_of(&[0], every_tweak_off().len(), Cpu::default()));
     let mut h = Harness::with_env(tools, env, 100, 24);
     h.set_locale("en").set_glyph_mode(GlyphMode::Unicode);
     open(&mut h);
@@ -272,7 +267,7 @@ fn the_undo_command_asks_first_for_an_applied_tweak_and_runs_the_revert() {
     states[0] = TweakState::Applied;
     // The mirrors are on qtools' record, so the palette offers their undo: a run's own reading
     // afterwards would find the machine off, which is what the stand-in script stands for.
-    let mut h = harness_recorded(&script, states, vec![0]);
+    let mut h = harness_recorded(&script, states, &[0]);
     focus_tweaks(&mut h);
     // The detail closes, so the package the confirmation names can only have come from the
     // confirmation itself and not from the panel behind it.
@@ -365,7 +360,7 @@ fn a_command_that_cannot_do_anything_now_is_not_listed_at_all() {
     let mut states = every_tweak_off();
     states[0] = TweakState::Unavailable("unavailable.no-ssd");
     for query in ["apply", "check", "undo"] {
-        let mut h = recorded(states.clone(), Vec::new());
+        let mut h = recorded(states.clone(), &[]);
         open(&mut h).type_text(query);
         assert!(h.screen().contains(NO_MATCH), "`{query}` fits no machine that has no ssd:\n{}", h.screen());
     }
@@ -380,13 +375,13 @@ fn the_undo_is_offered_only_for_a_tweak_qtools_has_on_record() {
     // Applied by hand, nothing on record: the list says applied, and there is no undo to offer.
     let mut states = every_tweak_off();
     states[0] = TweakState::Applied;
-    let mut hand = recorded(states.clone(), Vec::new());
+    let mut hand = recorded(states.clone(), &[]);
     open(&mut hand).type_text("undo");
     assert!(hand.screen().contains(NO_MATCH), "qtools did not do this one, so it offers no undo:\n{}", hand.screen());
     assert!(!hand.screen().contains("Undo"), "and the word is nowhere in the list: {}", hand.screen());
 
     // The same tweak, this time on qtools' record: the undo is there, with the key that does it.
-    let mut mine = recorded(states, vec![0]);
+    let mut mine = recorded(states, &[0]);
     open(&mut mine).type_text("undo");
     let screen = mine.screen();
     assert!(screen.contains("Undo: Mirror list"), "qtools' own work can be undone:\n{screen}");
@@ -405,7 +400,7 @@ fn the_palette_and_the_detail_button_offer_the_undo_for_the_same_tweaks() {
     ] {
         let mut states = every_tweak_off();
         states[0] = state.clone();
-        let mut h = recorded(states, if on_record { vec![0] } else { Vec::new() });
+        let mut h = recorded(states, if on_record { &[0] } else { &[] });
         // The detail's own button, read with the palette closed.
         let button = h.screen().contains("Undo");
         open(&mut h).type_text("undo");
@@ -518,7 +513,7 @@ fn visual_review_of_the_palette() {
 // form the `a` key opens.
 #[test]
 fn the_palette_opens_the_options_form_of_an_item_that_has_options() {
-    let mut h = recorded(super::tests::every_tweak_off(), Vec::new());
+    let mut h = recorded(super::tests::every_tweak_off(), &[]);
     open(&mut h).type_text("options").press("enter").advance(SETTLED);
 
     let screen = h.screen();

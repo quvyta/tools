@@ -85,10 +85,11 @@ pub fn settings_in(folder: Option<&Path>) -> Settings {
 pub struct Reading {
     /// Where every tweak stands.
     pub states: Vec<TweakState>,
-    /// Whether qtools' journal holds anything of each tweak, which is what makes it one that can
-    /// be undone: a timer the person turned on by hand shows as applied, but qtools did nothing
-    /// there to undo.
-    pub recorded: Vec<bool>,
+    /// Which steps of each tweak qtools' journal holds, in step order. A tweak with none is not
+    /// one that can be undone: a timer the person turned on by hand shows as applied, but qtools
+    /// did nothing there to undo. The steps are what an undo would put back, so the confirmation
+    /// counts its passwords from them.
+    pub recorded: Vec<Vec<usize>>,
 }
 
 /// Reads where every tweak of the catalog for `cpu` stands on `system`, and which of them the
@@ -104,7 +105,7 @@ pub fn read(choices: &Choices, system: &mut dyn crate::system::System, cpu: Cpu,
     let journal = crate::state::Journal::load(system, folder).unwrap_or_default();
     Reading {
         states: catalog.iter().map(|tweak| tweak.reading(system)).collect(),
-        recorded: catalog.iter().map(|tweak| journal.has(tweak.id)).collect(),
+        recorded: catalog.iter().map(|tweak| journal.steps(tweak.id)).collect(),
     }
 }
 
@@ -129,8 +130,9 @@ pub struct Tools {
     pub selected: usize,
     /// Where every tweak of the catalog stands, in catalog order.
     pub states: Vec<TweakState>,
-    /// Which tweaks qtools has on record, in catalog order: only those are offered an undo.
-    recorded: Vec<bool>,
+    /// Which steps of every tweak qtools has on record, in catalog order: only a tweak with some
+    /// is offered an undo.
+    recorded: Vec<Vec<usize>>,
     /// The machine's processor, which decides what the catalog offers. It is read once, next
     /// to the states, so the list is drawn from what was read and not from the machine.
     cpu: Cpu,
@@ -239,7 +241,7 @@ impl Tools {
             settings_open: false,
             selected: 0,
             states,
-            recorded: vec![false; count],
+            recorded: vec![Vec::new(); count],
             cpu,
             checked: vec![false; count],
             panel_open: true,
@@ -307,9 +309,9 @@ impl Tools {
         self
     }
 
-    /// The same screen, knowing which tweaks qtools has on record, in catalog order.
+    /// The same screen, knowing which steps of every tweak qtools has on record, in catalog order.
     #[must_use]
-    pub fn recorded(mut self, recorded: Vec<bool>) -> Self {
+    pub fn recorded(mut self, recorded: Vec<Vec<usize>>) -> Self {
         self.recorded = recorded;
         self
     }
@@ -759,7 +761,7 @@ impl Tools {
 
     /// Whether qtools has the tweak at `index` of the current group on record, so it can undo it.
     fn is_recorded(&self, index: usize) -> bool {
-        self.catalog_index(index).and_then(|at| self.recorded.get(at)).copied().unwrap_or(false)
+        self.catalog_index(index).and_then(|at| self.recorded.get(at)).is_some_and(|steps| !steps.is_empty())
     }
 
     /// Whether the tweak at `index` of the current group is checked to run with the others. The
@@ -863,15 +865,21 @@ impl Tools {
         }
         let mut indices = self.chosen_indices(index);
         if revert {
-            indices.retain(|&at| self.recorded.get(at).copied().unwrap_or(false));
+            indices.retain(|&at| self.recorded.get(at).is_some_and(|steps| !steps.is_empty()));
         }
         if indices.is_empty() {
             return Command::none();
         }
         let catalog = self.catalog();
-        let tweaks: Vec<(Tweak, TweakState)> = indices
+        let tweaks: Vec<run::Chosen> = indices
             .iter()
-            .filter_map(|&at| catalog.get(at).map(|tweak| (tweak.clone(), self.state_at(Some(at)))))
+            .filter_map(|&at| {
+                catalog.get(at).map(|tweak| run::Chosen {
+                    tweak: tweak.clone(),
+                    state: self.state_at(Some(at)),
+                    on_record: self.recorded.get(at).cloned().unwrap_or_default(),
+                })
+            })
             .collect();
         self.pending = Some(Pending { indices, revert });
         let title = if revert { t!("confirm.revert.title") } else { t!("confirm.apply.title") };

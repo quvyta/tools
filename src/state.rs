@@ -179,6 +179,15 @@ impl Journal {
         self.entries.iter().any(|entry| entry.tweak == tweak)
     }
 
+    /// Which steps of this tweak are on record, each once and in step order: what an undo of it
+    /// would put back.
+    pub fn steps(&self, tweak: &str) -> Vec<usize> {
+        let mut steps: Vec<usize> = self.entries(tweak).iter().map(|entry| entry.step).collect();
+        steps.sort_unstable();
+        steps.dedup();
+        steps
+    }
+
     /// Drops one step of a tweak, once it has been undone, so an undo that stops halfway
     /// leaves on record exactly the steps that are still on the machine.
     pub fn remove(&mut self, tweak: &str, step: usize) {

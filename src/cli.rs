@@ -539,6 +539,65 @@ Include = /etc/pacman.d/mirrorlist
         assert!(!conf.1.contains("T;rm"), "nothing typed into reflector's own arguments: {:?}", conf.1);
     }
 
+    // The line is typed by hand, so it can name something qtools does not carry. The command says
+    // so and leaves the code that says the arguments made no sense, which a script can tell from
+    // the code a failed run gives: nothing is read and nothing is written for an id that names
+    // nothing, so a name mistyped costs nothing.
+    #[test]
+    fn an_id_no_item_carries_is_refused_with_code_two() {
+        let root = Root::new();
+        let mut system = clean_machine();
+
+        let code = carry_out_on(&parse(args(&["--run", "no-such-tweak"])), &root.choices(), &mut system, &root.0)
+            .expect("it is answered");
+
+        assert_eq!(code, ExitCode::from(2));
+        assert!(system.calls().is_empty(), "nothing is run: {:?}", system.calls());
+        assert!(
+            system
+                .read(Path::new("/etc/systemd/journald.conf.d/50-quvyta-tools.conf"))
+                .expect("the fake reads")
+                .is_none(),
+            "and nothing is written"
+        );
+    }
+
+    // A line that names two items in order promises both: when the first one's own step fails, the
+    // second one is not begun at all. Half of the first item with the whole of the second would be
+    // a state qtools never promised and could not undo, and the code says a run failed rather than
+    // that the line made no sense.
+    #[test]
+    fn a_failing_item_stops_the_rest_and_leaves_code_one() {
+        let root = Root::new();
+        let mut system = clean_machine();
+        // Nothing installed and nothing installable: the first item's own step fails.
+        system.answer("pacman -Q pacman-contrib", no());
+        system.answer("sudo pacman -S --needed --noconfirm pacman-contrib", no());
+
+        let code = carry_out_on(
+            &parse(args(&["--run", "cache-cleanup", "journal-limit"])),
+            &root.choices(),
+            &mut system,
+            &root.0,
+        )
+        .expect("it is answered");
+
+        assert_eq!(code, ExitCode::from(1));
+        assert!(
+            !system.calls().iter().any(|call| call.starts_with("sudo systemctl enable --now paccache.timer")),
+            "the failed item stops at its own failing step: {:?}",
+            system.calls()
+        );
+        assert!(
+            system
+                .read(Path::new("/etc/systemd/journald.conf.d/50-quvyta-tools.conf"))
+                .expect("the fake reads")
+                .is_none(),
+            "and the item after the failure never starts: {:?}",
+            system.calls()
+        );
+    }
+
     #[test]
     fn a_session_without_its_one_path_is_an_argument_nobody_made_sense_of() {
         for line in [&["--session"][..], &["--session", "one", "two"][..]] {
